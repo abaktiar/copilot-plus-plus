@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { ConfigService } from './configService';
 
 const execAsync = promisify(exec);
 
@@ -56,7 +57,7 @@ export class GitService {
             return [];
         }
     }
-    
+
     /**
      * Get the current branch name and extract ticket number
      */
@@ -65,10 +66,17 @@ export class GitService {
             const { stdout: branchName } = await execAsync('git rev-parse --abbrev-ref HEAD', { cwd: workspaceRoot });
             const branch = branchName.trim();
 
-            // Extract ticket number from branch name
-            // Common patterns: feature/ABC-123-description, ABC-123/description, ABC-123_description
-            const ticketMatch = branch.match(/(?:^|\/|_)((?:[A-Z]+)-\d+)(?:\/|$|[-_])/);
-            const ticketNumber = ticketMatch ? ticketMatch[1] : undefined;
+            // Get ticket pattern from configuration
+            const config = ConfigService.getCommitMessageConfig();
+            const includeTicket = config.includeTicketNumber;
+            
+            // Only extract ticket if enabled in settings
+            let ticketNumber: string | undefined = undefined;
+            if (includeTicket) {
+                const ticketRegex = new RegExp(config.ticketPattern);
+                const ticketMatch = branch.match(ticketRegex);
+                ticketNumber = ticketMatch ? ticketMatch[1] : undefined;
+            }
 
             return { branch, ticketNumber };
         } catch (error) {
@@ -76,7 +84,7 @@ export class GitService {
             return { branch: 'unknown', ticketNumber: undefined };
         }
     }
-
+    
     /**
      * Get commit context data to help generate meaningful commit messages
      */

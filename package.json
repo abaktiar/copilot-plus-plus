@@ -38,6 +38,55 @@
           "group": "navigation"
         }
       ]
+    },
+    "configuration": {
+      "title": "Copilot Plus Plus",
+      "properties": {
+        "copilotPlusPlus.languageModel": {
+          "type": "string",
+          "enum": [
+            "gpt-4o",
+            "gpt-4o-mini",
+            "claude-3.5-sonnet",
+            "o1",
+            "o1-mini"
+          ],
+          "enumDescriptions": [
+            "GPT-4o - Most capable model, best for complex understanding",
+            "GPT-4o-mini - Faster variant with slightly reduced capabilities",
+            "Claude 3.5 Sonnet - Anthropic's model with excellent context understanding",
+            "o1 - OpenAI o1 model, highest reasoning capabilities",
+            "o1-mini - Smaller, faster OpenAI o1 model"
+          ],
+          "default": "gpt-4o",
+          "description": "The language model to use for generating commit messages"
+        },
+        "copilotPlusPlus.commitStyle": {
+          "type": "string",
+          "enum": [
+            "conventional",
+            "gitmoji",
+            "custom"
+          ],
+          "enumDescriptions": [
+            "Conventional commits (e.g. feat(scope): description)",
+            "Gitmoji style with emojis (e.g. ✨ Add new feature)",
+            "Custom format defined in commitTemplate"
+          ],
+          "default": "conventional",
+          "description": "The style of commit messages to generate"
+        },
+        "copilotPlusPlus.includeTicketNumber": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include ticket numbers from branch names in commit messages"
+        },
+        "copilotPlusPlus.ticketPattern": {
+          "type": "string",
+          "default": "(?:^|\\/)([A-Z]+-\\d+)(?:\\/|$|[-_])",
+          "description": "Regex pattern to extract ticket numbers from branch names"
+        }
+      }
     }
   },
   "scripts": {
