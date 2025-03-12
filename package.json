@@ -6,18 +6,38 @@
   "engines": {
     "vscode": "^1.98.0"
   },
+  "enabledApiProposals": [
+    "contribSourceControlInputBoxMenu"
+  ],
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished",
+    "onView:scm"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "copilot-plus-plus.helloWorld",
         "title": "Hello World"
+      },
+      {
+        "command": "copilot-plus-plus.generateCommitMessage",
+        "title": "Generate Commit Message",
+        "icon": "$(copilot)"
       }
-    ]
+    ],
+    "menus": {
+      "scm/inputBox": [
+        {
+          "command": "copilot-plus-plus.generateCommitMessage",
+          "when": "scmProvider == git",
+          "group": "navigation"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "pnpm run package",
