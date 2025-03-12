@@ -1,13 +1,14 @@
 import * as vscode from 'vscode';
 import { PromptService } from './promptService';
+import { ConfigService } from './configService';
 
 interface CommitContext {
-  diff: string;
-  files: Array<{ status: string; file: string }>;
-  commitTemplate?: string;
-  recentCommits?: string[];
-  branch?: string;
-  ticketNumber?: string;
+    diff: string;
+    files: Array<{ status: string; file: string }>;
+    commitTemplate?: string;
+    recentCommits?: string[];
+    branch?: string;
+    ticketNumber?: string;
 }
 
 export class CopilotService {
@@ -16,14 +17,17 @@ export class CopilotService {
      */
     async generateCommitMessage(commitContext: CommitContext): Promise<string> {
         try {
-            // Select the Copilot GPT-4 model
+            // Get the configured language model family
+            const modelFamily = ConfigService.getLanguageModelFamily();
+            
+            // Select the configured Copilot model
             const [model] = await vscode.lm.selectChatModels({ 
                 vendor: 'copilot',
-                family: 'gpt-4o'
+                family: modelFamily
             });
 
             if (!model) {
-                throw new Error('No suitable language model found. Please make sure GitHub Copilot is installed and enabled.');
+                throw new Error(`No suitable language model found for: ${modelFamily}. Please make sure GitHub Copilot is installed and enabled.`);
             }
 
             // Build the commit template using recent commits if available
@@ -33,7 +37,10 @@ export class CopilotService {
                     : undefined);
 
             // Get messages array from PromptService
-            const messages = PromptService.buildPrompt(commitContext, commitTemplate);
+            const messages = PromptService.buildPrompt({
+                ...commitContext,
+                commitTemplate
+            });
 
             // Send the request to the language model
             const response = await model.sendRequest(messages, {}, new vscode.CancellationTokenSource().token);
