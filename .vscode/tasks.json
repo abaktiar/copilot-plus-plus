@@ -59,6 +59,32 @@
 				"npm: watch-tests"
 			],
 			"problemMatcher": []
+		},
+		{
+			"label": "package-extension",
+			"type": "shell",
+			"command": "npx @vscode/vsce package",
+			"group": {
+				"kind": "build"
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "new"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "publish-extension",
+			"type": "shell",
+			"command": "npx @vscode/vsce publish",
+			"group": {
+				"kind": "build"
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "new"
+			},
+			"problemMatcher": []
 		}
 	]
 }

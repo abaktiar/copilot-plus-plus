@@ -1,7 +1,7 @@
 {
   "name": "copilot-plus-plus",
-  "displayName": "copilot-plus-plus",
-  "description": "Copilot Plus Plus",
+  "displayName": "Copilot Plus Plus",
+  "description": "Enhances GitHub Copilot with AI-powered commit message generation",
   "version": "0.0.1",
   "publisher": "albaktiar",
   "engines": {
@@ -10,9 +10,28 @@
   "enabledApiProposals": [
     "contribSourceControlInputBoxMenu"
   ],
+  "enableProposedApi": true,
   "categories": [
-    "Other"
+    "Other",
+    "SCM Providers"
   ],
+  "keywords": [
+    "git",
+    "commit",
+    "ai",
+    "copilot",
+    "automation"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/albaktiar/copilot-plus-plus"
+  },
+  "license": "MIT",
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#C80000",
+    "theme": "dark"
+  },
   "activationEvents": [
     "onStartupFinished",
     "onView:scm"
@@ -27,15 +46,23 @@
       {
         "command": "copilot-plus-plus.generateCommitMessage",
         "title": "Generate Commit Message",
-        "icon": "$(sparkle)"
+        "icon": "$(sparkle)",
+        "category": "Copilot++"
       }
     ],
     "menus": {
+      "scm/title": [
+        {
+          "command": "copilot-plus-plus.generateCommitMessage",
+          "group": "navigation",
+          "when": "scmProvider == git"
+        }
+      ],
       "scm/inputBox": [
         {
           "command": "copilot-plus-plus.generateCommitMessage",
-          "when": "scmProvider == git",
-          "group": "navigation"
+          "group": "navigation",
+          "when": "scmProvider == git"
         }
       ]
     },
@@ -105,16 +132,17 @@
     "debug": "pnpm run compile && code --extensionDevelopmentPath=${PWD} --enable-proposed-api=albaktiar.copilot-plus-plus ."
   },
   "devDependencies": {
-    "@types/vscode": "^1.98.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
+    "@types/vscode": "^1.98.0",
     "@typescript-eslint/eslint-plugin": "^8.25.0",
     "@typescript-eslint/parser": "^8.25.0",
-    "eslint": "^9.21.0",
-    "esbuild": "^0.25.0",
-    "npm-run-all": "^4.1.5",
-    "typescript": "^5.7.3",
     "@vscode/test-cli": "^0.0.10",
-    "@vscode/test-electron": "^2.4.1"
-  }
+    "@vscode/test-electron": "^2.4.1",
+    "esbuild": "^0.25.0",
+    "eslint": "^9.21.0",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.7.3"
+  },
+  "dependencies": {}
 }
