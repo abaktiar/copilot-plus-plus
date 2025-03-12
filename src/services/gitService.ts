@@ -58,15 +58,36 @@ export class GitService {
     }
     
     /**
+     * Get the current branch name and extract ticket number
+     */
+    private async getBranchInfo(workspaceRoot: string): Promise<{ branch: string; ticketNumber: string | undefined }> {
+        try {
+            const { stdout: branchName } = await execAsync('git rev-parse --abbrev-ref HEAD', { cwd: workspaceRoot });
+            const branch = branchName.trim();
+
+            // Extract ticket number from branch name
+            // Common patterns: feature/ABC-123-description, ABC-123/description, ABC-123_description
+            const ticketMatch = branch.match(/(?:^|\/|_)((?:[A-Z]+)-\d+)(?:\/|$|[-_])/);
+            const ticketNumber = ticketMatch ? ticketMatch[1] : undefined;
+
+            return { branch, ticketNumber };
+        } catch (error) {
+            console.error('Error getting branch info:', error);
+            return { branch: 'unknown', ticketNumber: undefined };
+        }
+    }
+
+    /**
      * Get commit context data to help generate meaningful commit messages
      */
     async getCommitContext(workspaceRoot: string): Promise<object> {
         try {
-            const [diffResult, filesResult, template, recentCommits] = await Promise.all([
+            const [diffResult, filesResult, template, recentCommits, branchInfo] = await Promise.all([
                 execAsync('git diff --staged', { cwd: workspaceRoot }),
                 execAsync('git diff --staged --name-status', { cwd: workspaceRoot }),
                 this.getCommitTemplate(workspaceRoot),
-                this.getRecentCommits(workspaceRoot)
+                this.getRecentCommits(workspaceRoot),
+                this.getBranchInfo(workspaceRoot)
             ]);
             
             const changedFiles = filesResult.stdout.trim().split('\n')
@@ -82,6 +103,8 @@ export class GitService {
                 files: changedFiles,
                 commitTemplate: template,
                 recentCommits,
+                branch: branchInfo.branch,
+                ticketNumber: branchInfo.ticketNumber,
                 timestamp: new Date().toISOString()
             };
         } catch (error) {
