@@ -2,10 +2,12 @@ import * as vscode from 'vscode';
 import { PromptService } from './promptService';
 
 interface CommitContext {
-    diff: string;
-    files: Array<{ status: string; file: string }>;
-    commitTemplate?: string;
-    recentCommits?: string[];
+  diff: string;
+  files: Array<{ status: string; file: string }>;
+  commitTemplate?: string;
+  recentCommits?: string[];
+  branch?: string;
+  ticketNumber?: string;
 }
 
 export class CopilotService {
