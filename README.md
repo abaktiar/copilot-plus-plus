@@ -1,71 +1,66 @@
-# copilot-plus-plus README
+# Copilot Plus Plus
 
-This is the README for your extension "copilot-plus-plus". After writing up a brief description, we recommend including the following sections.
+A VS Code extension that enhances GitHub Copilot capabilities by adding AI-powered commit message generation.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+- **Smart Commit Messages**: Automatically generates meaningful commit messages using GitHub's Language Model
+- **Conventional Commit Format**: Follows the conventional commit format for consistency
+- **Git Integration**: Seamlessly integrates with VS Code's source control
+- **Context-Aware**: Analyzes staged changes to generate relevant commit messages
 
-For example if there is an image subfolder under your extension project workspace:
-
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+![Commit Message Generation](images/commit-message.gif)
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+- Visual Studio Code ^1.98.0
+- GitHub Copilot extension installed and authenticated
+- Git repository
 
-## Extension Settings
+## Installation
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+1. Install the extension from VS Code Marketplace
+2. Make sure you have GitHub Copilot installed and authenticated
+3. Open a Git repository in VS Code
 
-For example:
+## Usage
 
-This extension contributes the following settings:
+1. Stage your changes in Git
+2. Open the Source Control view (Ctrl+Shift+G or Cmd+Shift+G on macOS)
+3. Click the Copilot icon ($(copilot)) next to the commit message input box
+4. Wait for Copilot to generate a commit message based on your changes
+5. Edit the generated message if needed and commit
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+## Development
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   pnpm install
+   ```
+3. Run the extension in debug mode:
+   ```bash
+   pnpm run debug
+   ```
 
 ## Known Issues
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+- Requires the proposed API for SCM input box menu contribution
+- Requires GitHub Copilot to be installed and authenticated
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
+### 0.0.1
 
-### 1.0.0
+Initial release:
+- Add commit message generation using GitHub's Language Model
+- Implement conventional commit format
+- Add SCM input box integration
 
-Initial release of ...
+## Contributing
 
-### 1.0.1
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-Fixed issue #.
+## License
 
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+MIT

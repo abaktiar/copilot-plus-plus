@@ -3,6 +3,7 @@
   "displayName": "copilot-plus-plus",
   "description": "Copilot Plus Plus",
   "version": "0.0.1",
+  "publisher": "albaktiar",
   "engines": {
     "vscode": "^1.98.0"
   },
@@ -51,7 +52,8 @@
     "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "debug": "pnpm run compile && code --extensionDevelopmentPath=${PWD} --enable-proposed-api=albaktiar.copilot-plus-plus ."
   },
   "devDependencies": {
     "@types/vscode": "^1.98.0",
