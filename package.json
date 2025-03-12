@@ -27,7 +27,7 @@
       {
         "command": "copilot-plus-plus.generateCommitMessage",
         "title": "Generate Commit Message",
-        "icon": "$(copilot)"
+        "icon": "$(sparkle)"
       }
     ],
     "menus": {
