@@ -7,6 +7,12 @@ export interface CommitMessageConfig {
     ticketPattern: string;
 }
 
+export interface PrDescriptionConfig {
+    style: string;
+    includeTechnicalDetails: boolean;
+    groupCommitsByType: boolean;
+}
+
 /**
  * Service to manage extension configuration
  */
@@ -21,6 +27,18 @@ export class ConfigService {
             commitStyle: config.get<string>('commitStyle') || 'conventional',
             includeTicketNumber: config.get<boolean>('includeTicketNumber') ?? true,
             ticketPattern: config.get<string>('ticketPattern') || '(?:^|\\/)([A-Z]+-\\d+)(?:\\/|$|[-_])'
+        };
+    }
+
+    /**
+     * Get the configuration for PR description generation
+     */
+    public static getPrDescriptionConfig(): PrDescriptionConfig {
+        const config = vscode.workspace.getConfiguration('copilotPlusPlus');
+        return {
+            style: config.get<string>('prDescriptionStyle') || 'detailed',
+            includeTechnicalDetails: config.get<boolean>('includeTechnicalDetails') ?? true,
+            groupCommitsByType: config.get<boolean>('groupCommitsByType') ?? true
         };
     }
 
