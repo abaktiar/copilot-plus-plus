@@ -1,15 +1,27 @@
 # Copilot Plus Plus
 
-A VS Code extension that enhances GitHub Copilot capabilities by adding AI-powered commit message generation.
+A VS Code extension that enhances GitHub Copilot capabilities with AI-powered development workflows.
 
 ## Features
 
+### Current Features
+
 - **Smart Commit Messages**: Automatically generates meaningful commit messages using GitHub's Language Model
-- **Conventional Commit Format**: Follows the conventional commit format for consistency
-- **Git Integration**: Seamlessly integrates with VS Code's source control
-- **Context-Aware**: Analyzes staged changes to generate relevant commit messages
+  - Follows conventional commit format for consistency
+  - Seamlessly integrates with VS Code's source control
+  - Context-aware analysis of staged changes to generate relevant messages
+  - Support for multiple commit styles (conventional, gitmoji)
+  - Automatic ticket number detection from branch names
 
 ![Commit Message Generation](images/commit-message.gif)
+
+### Coming Soon
+
+- **PR Description Generation**: Automatically generate comprehensive PR descriptions based on your changes
+- **PR Review Assistance**: Get AI-powered review comments and suggestions for your PRs
+- **Code Usage Analysis**: Identify where and how specific code is used throughout your project
+- **Impact Analysis**: Detect potential breaking changes when modifying critical code
+- **Test Generation**: Generate unit tests for your code changes
 
 ## Requirements
 
@@ -25,11 +37,22 @@ A VS Code extension that enhances GitHub Copilot capabilities by adding AI-power
 
 ## Usage
 
+### Commit Message Generation
+
 1. Stage your changes in Git
 2. Open the Source Control view (Ctrl+Shift+G or Cmd+Shift+G on macOS)
-3. Click the Copilot icon ($(copilot)) next to the commit message input box
+3. Click the Copilot icon ($(sparkle)) next to the commit message input box
 4. Wait for Copilot to generate a commit message based on your changes
 5. Edit the generated message if needed and commit
+
+### Configuration
+
+You can customize the extension's behavior through the following settings:
+
+- `copilotPlusPlus.languageModel`: Choose which AI model to use for generations
+- `copilotPlusPlus.commitStyle`: Select commit message style (conventional, gitmoji, etc.)
+- `copilotPlusPlus.includeTicketNumber`: Automatically include ticket numbers from branch names
+- `copilotPlusPlus.ticketPattern`: Customize regex pattern for ticket number detection
 
 ## Development
 
@@ -42,11 +65,6 @@ A VS Code extension that enhances GitHub Copilot capabilities by adding AI-power
    ```bash
    pnpm run debug
    ```
-
-## Known Issues
-
-- Requires the proposed API for SCM input box menu contribution
-- Requires GitHub Copilot to be installed and authenticated
 
 ## Release Notes
 
