@@ -55,14 +55,7 @@
       "scm/title": [
         {
           "command": "copilot-plus-plus.generateCommitMessage",
-          "group": "navigation",
-          "when": "scmProvider == git"
-        }
-      ],
-      "scm/inputBox": [
-        {
-          "command": "copilot-plus-plus.generateCommitMessage",
-          "group": "navigation",
+          "group": "navigation@1",
           "when": "scmProvider == git"
         }
       ]
