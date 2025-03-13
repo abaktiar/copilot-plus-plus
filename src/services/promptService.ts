@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import { ConfigService, CommitMessageConfig, PrDescriptionConfig, PrReviewConfig } from './configService';
 
+const MAX_CONTEXT_LENGTH = 100000; // 1 lakh characters
+
 export class PromptService {
   private static readonly COMMIT_INTRO =
     'Review the following git command output to understand the changes you are about to generate a commit message for.';
@@ -280,7 +282,11 @@ Files Changed:
 ${filesFormatted}
 
 Changes (git diff - truncated if large):
-${context.diff.length > 10000 ? context.diff.substring(0, 10000) + '\n... (diff truncated)' : context.diff}
+${
+  context.diff.length > MAX_CONTEXT_LENGTH
+    ? context.diff.substring(0, MAX_CONTEXT_LENGTH) + '\n... (diff truncated)'
+    : context.diff
+}
 `;
 
     // Add review instruction components based on config
