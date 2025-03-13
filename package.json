@@ -2,7 +2,7 @@
   "name": "copilot-plus-plus",
   "displayName": "Copilot Plus Plus",
   "description": "Enhances GitHub Copilot with AI-powered commit message generation",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "publisher": "albaktiar",
   "engines": {
     "vscode": "^1.98.0"
@@ -47,12 +47,6 @@
       {
         "command": "copilot-plus-plus.generateCommitMessage",
         "title": "Generate Commit Message",
-        "icon": "$(sparkle)",
-        "category": "Copilot++"
-      },
-      {
-        "command": "copilot-plus-plus.generatePrDescription",
-        "title": "Generate PR Description",
         "icon": "$(code)",
         "category": "Copilot++"
       }
@@ -61,11 +55,6 @@
       "scm/title": [
         {
           "command": "copilot-plus-plus.generateCommitMessage",
-          "group": "navigation",
-          "when": "scmProvider == git"
-        },
-        {
-          "command": "copilot-plus-plus.generatePrDescription",
           "group": "navigation",
           "when": "scmProvider == git"
         }
