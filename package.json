@@ -2,7 +2,7 @@
   "name": "copilot-plus-plus",
   "displayName": "Copilot Plus Plus",
   "description": "Enhances GitHub Copilot with AI-powered commit message generation",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "publisher": "albaktiar",
   "engines": {
     "vscode": "^1.98.0"
@@ -35,7 +35,8 @@
   "activationEvents": [
     "onStartupFinished",
     "onView:scm",
-    "onView:copilotPlusPlusView"
+    "onView:copilotPlusPlusView",
+    "onCommand:copilot-plus-plus.reviewPrChanges"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -49,6 +50,12 @@
         "title": "Generate Commit Message",
         "icon": "$(code)",
         "category": "Copilot++"
+      },
+      {
+        "command": "copilot-plus-plus.reviewPrChanges",
+        "title": "Review PR Changes",
+        "icon": "$(search-view-icon)",
+        "category": "Copilot++"
       }
     ],
     "menus": {
@@ -57,6 +64,12 @@
           "command": "copilot-plus-plus.generateCommitMessage",
           "group": "navigation@1",
           "when": "scmProvider == git"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "copilot-plus-plus.reviewPrChanges",
+          "when": "git.state == initialized"
         }
       ]
     },
@@ -149,6 +162,44 @@
           "type": "boolean",
           "default": true,
           "description": "Group commits by type in the PR description"
+        },
+        "copilotPlusPlus.prReview.includeSecurity": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include security vulnerability checks in PR reviews"
+        },
+        "copilotPlusPlus.prReview.includeCodeStyle": {
+          "type": "boolean",
+          "default": true,
+          "description": "Check code style and best practices during PR reviews"
+        },
+        "copilotPlusPlus.prReview.includePerformance": {
+          "type": "boolean",
+          "default": true,
+          "description": "Analyze code for potential performance issues during PR reviews"
+        },
+        "copilotPlusPlus.prReview.includeBreakingChanges": {
+          "type": "boolean",
+          "default": true,
+          "description": "Check for breaking changes in PR reviews"
+        },
+        "copilotPlusPlus.prReview.enableInlineLinks": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable clickable links to navigate to files with issues"
+        },
+        "copilotPlusPlus.prReview.severityLevels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "Critical",
+            "High",
+            "Medium",
+            "Low"
+          ],
+          "description": "Severity levels for categorizing issues in PR reviews"
         }
       }
     }

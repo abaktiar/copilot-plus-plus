@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { CopilotPlusPlusViewProvider } from './commands/CopilotPlusPlusViewProvider';
 import { registerCommitMessageCommand } from './commands/commitMessageCommand';
+import { registerPrReviewCommand } from './commands/prReviewCommand';
 import { LoggingService } from './services/loggingService';
 
 // Keep track of view provider
@@ -11,8 +12,9 @@ export function activate(context: vscode.ExtensionContext) {
   const logger = LoggingService.getInstance();
   logger.log('Copilot++ extension activated', 'Extension');
 
-  // Register the commit message command
+  // Register commands
   registerCommitMessageCommand(context);
+  registerPrReviewCommand(context);
 
   // Create and register the PR Description view provider
   try {
@@ -43,8 +45,8 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-    const logger = LoggingService.getInstance();
-    logger.log('Copilot++ extension deactivated', 'Extension');
+  const logger = LoggingService.getInstance();
+  logger.log('Copilot++ extension deactivated', 'Extension');
 
-    viewProvider = undefined;
+  viewProvider = undefined;
 }
