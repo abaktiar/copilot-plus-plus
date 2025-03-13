@@ -48,12 +48,23 @@
         "title": "Generate Commit Message",
         "icon": "$(sparkle)",
         "category": "Copilot++"
+      },
+      {
+        "command": "copilot-plus-plus.generatePrDescription",
+        "title": "Generate PR Description",
+        "icon": "$(git-pull-request)",
+        "category": "Copilot++"
       }
     ],
     "menus": {
       "scm/title": [
         {
           "command": "copilot-plus-plus.generateCommitMessage",
+          "group": "navigation",
+          "when": "scmProvider == git"
+        },
+        {
+          "command": "copilot-plus-plus.generatePrDescription",
           "group": "navigation",
           "when": "scmProvider == git"
         }
@@ -112,6 +123,31 @@
           "type": "string",
           "default": "(?:^|\\/)([A-Z]+-\\d+)(?:\\/|$|[-_])",
           "description": "Regex pattern to extract ticket numbers from branch names"
+        },
+        "copilotPlusPlus.prDescriptionStyle": {
+          "type": "string",
+          "enum": [
+            "concise",
+            "detailed",
+            "custom"
+          ],
+          "enumDescriptions": [
+            "Brief summary of changes",
+            "Comprehensive description with technical details",
+            "Custom format defined by user"
+          ],
+          "default": "detailed",
+          "description": "Style of the PR description generated"
+        },
+        "copilotPlusPlus.includeTechnicalDetails": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include a summary of file changes in the PR description"
+        },
+        "copilotPlusPlus.groupCommitsByType": {
+          "type": "boolean",
+          "default": true,
+          "description": "Group commits by type in the PR description"
         }
       }
     }
