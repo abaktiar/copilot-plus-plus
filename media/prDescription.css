@@ -1,7 +1,15 @@
 :root {
-    --container-padding: 20px;
-    --input-padding-vertical: 6px;
-    --input-padding-horizontal: 10px;
+    --container-padding: 24px;
+    --input-padding-vertical: 8px;
+    --input-padding-horizontal: 12px;
+    --border-radius: 8px;
+    --border-radius-sm: 6px;
+    --transition-speed: 0.2s;
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+    --gradient-primary: linear-gradient(145deg, var(--vscode-button-background), color-mix(in srgb, var(--vscode-button-background) 85%, black));
+    --gradient-hover: linear-gradient(145deg, color-mix(in srgb, var(--vscode-button-background) 85%, white), var(--vscode-button-background));
 }
 
 body {
@@ -11,41 +19,82 @@ body {
     font-weight: var(--vscode-font-weight);
     font-family: var(--vscode-font-family);
     background-color: var(--vscode-editor-background);
+    line-height: 1.5;
 }
 
 .container {
     max-width: 800px;
     margin: 0 auto;
-    padding: 20px 0;
+    padding: 24px 0;
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .heading {
     font-size: 24px;
-    font-weight: 600;
-    margin-bottom: 20px;
+    font-weight: 500;
+    margin-bottom: 24px;
     border-bottom: 1px solid var(--vscode-panel-border);
-    padding-bottom: 10px;
+    padding-bottom: 12px;
+    opacity: 0.95;
+    letter-spacing: -0.02em;
 }
 
 .branch-selection {
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    margin-bottom: 25px;
-    padding: 15px;
-    border: 1px solid var(--vscode-panel-border);
-    border-radius: 4px;
-    background-color: var(--vscode-editor-inactiveSelectionBackground);
+    gap: 18px;
+    margin-bottom: 28px;
+    padding: 24px;
+    background: color-mix(in srgb, var(--vscode-editor-background) 97%, var(--vscode-button-background));
+    border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 90%, var(--vscode-button-background));
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    transition: all var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.branch-selection:hover {
+    box-shadow: var(--shadow-md);
+    border-color: color-mix(in srgb, var(--vscode-panel-border) 75%, var(--vscode-button-background));
+    transform: translateY(-1px);
 }
 
 .form-group {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 8px;
 }
 
 label {
+    font-size: 13px;
     font-weight: 500;
+    opacity: 0.9;
+    letter-spacing: -0.01em;
+}
+
+.select-wrapper {
+    position: relative;
+    transition: all var(--transition-speed) ease;
+}
+
+.select-wrapper:after {
+    content: '▼';
+    font-size: 8px;
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    opacity: 0.6;
+    transition: all var(--transition-speed) ease;
+}
+
+.select-wrapper:hover:after {
+    opacity: 0.8;
 }
 
 .select-branch {
@@ -53,58 +102,106 @@ label {
     border: 1px solid var(--vscode-dropdown-border);
     background-color: var(--vscode-dropdown-background);
     color: var(--vscode-dropdown-foreground);
-    border-radius: 2px;
-    height: 32px;
+    border-radius: var(--border-radius-sm);
+    height: 36px;
     width: 100%;
     outline: none;
+    appearance: none;
+    transition: all var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.select-branch:hover {
+    border-color: color-mix(in srgb, var(--vscode-focusBorder) 90%, transparent);
+    background-color: color-mix(in srgb, var(--vscode-dropdown-background) 98%, var(--vscode-button-background));
+}
+
+.select-branch:focus {
+    border-color: var(--vscode-focusBorder);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--vscode-focusBorder) 25%, transparent);
 }
 
 .generate-button {
-    margin-top: 15px;
-    background-color: var(--vscode-button-background);
+    margin-top: 16px;
+    background: var(--gradient-primary);
     color: var(--vscode-button-foreground);
     border: none;
     padding: 8px 16px;
-    border-radius: 2px;
+    border-radius: var(--border-radius-sm);
     cursor: pointer;
     font-weight: 500;
-    height: 32px;
+    height: 36px;
     align-self: flex-start;
+    transition: all var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    box-shadow: var(--shadow-sm);
 }
 
 .generate-button:hover {
-    background-color: var(--vscode-button-hoverBackground);
+    background: var(--gradient-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.generate-button:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-sm);
 }
 
 .generate-button:disabled {
-    opacity: 0.5;
+    opacity: 0.6;
     cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }
 
 .error {
     color: var(--vscode-errorForeground);
-    background-color: var(--vscode-inputValidation-errorBackground);
+    background-color: color-mix(in srgb, var(--vscode-inputValidation-errorBackground) 95%, transparent);
     border: 1px solid var(--vscode-inputValidation-errorBorder);
-    padding: 10px;
-    margin-bottom: 15px;
-    border-radius: 3px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    border-radius: var(--border-radius-sm);
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.error:before {
+    content: "⚠️";
+    font-size: 14px;
 }
 
 .loading {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 15px;
-    padding: 20px;
+    gap: 16px;
+    padding: 32px;
+    opacity: 0.8;
+    text-align: center;
+    animation: fadeIn 0.3s ease-out;
 }
 
 .spinner {
-    width: 30px;
-    height: 30px;
-    border: 3px solid var(--vscode-editor-foreground);
+    width: 32px;
+    height: 32px;
+    border: 2px solid transparent;
+    border-top-color: var(--vscode-button-background);
+    border-right-color: var(--vscode-button-background);
     border-radius: 50%;
-    border-top-color: transparent;
-    animation: spin 1s linear infinite;
+    animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
@@ -114,80 +211,138 @@ label {
 .results {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 24px;
+    animation: fadeIn 0.4s ease-out;
 }
 
 .result-section {
-    border: 1px solid var(--vscode-panel-border);
-    border-radius: 4px;
+    border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 90%, var(--vscode-button-background));
+    border-radius: var(--border-radius);
     overflow: hidden;
+    background: color-mix(in srgb, var(--vscode-editor-background) 97%, var(--vscode-button-background));
+    box-shadow: var(--shadow-sm);
+    transition: all var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.result-section:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
 }
 
 .result-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: var(--vscode-editor-inactiveSelectionBackground);
-    padding: 10px 15px;
-    border-bottom: 1px solid var(--vscode-panel-border);
+    background-color: color-mix(in srgb, var(--vscode-editor-background) 95%, var(--vscode-button-background));
+    padding: 12px 16px;
+    border-bottom: 1px solid color-mix(in srgb, var(--vscode-panel-border) 90%, var(--vscode-button-background));
 }
 
 .result-header h3 {
     margin: 0;
-    font-size: 16px;
-    font-weight: 500;
+    font-size: 14px;
+    font-weight: 600;
+    opacity: 0.95;
+    letter-spacing: -0.01em;
 }
 
 .result-content {
-    padding: 15px;
+    padding: 18px;
     background-color: var(--vscode-editor-background);
     white-space: pre-wrap;
+    line-height: 1.6;
 }
 
 .title-content {
     font-weight: 600;
     font-size: 18px;
+    letter-spacing: -0.01em;
 }
 
 .description-content {
     max-height: 500px;
     overflow-y: auto;
+    padding-right: 8px;
+}
+
+.description-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.description-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.description-content::-webkit-scrollbar-thumb {
+    background-color: color-mix(in srgb, var(--vscode-scrollbarSlider-background) 90%, transparent);
+    border-radius: 4px;
+}
+
+.description-content::-webkit-scrollbar-thumb:hover {
+    background-color: var(--vscode-scrollbarSlider-hoverBackground);
 }
 
 .copy-button, .copy-all-button {
-    background-color: var(--vscode-button-secondaryBackground);
+    background: color-mix(in srgb, var(--vscode-button-secondaryBackground) 97%, transparent);
     color: var(--vscode-button-secondaryForeground);
-    border: none;
+    border: 1px solid color-mix(in srgb, var(--vscode-button-secondaryBackground) 80%, transparent);
     padding: 4px 10px;
-    border-radius: 2px;
+    border-radius: var(--border-radius-sm);
     cursor: pointer;
     font-size: 12px;
+    transition: all var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.copy-button:before {
+    content: "📋";
+    font-size: 12px;
+    opacity: 0.9;
 }
 
 .copy-button:hover, .copy-all-button:hover {
-    background-color: var(--vscode-button-secondaryHoverBackground);
+    background: var(--vscode-button-secondaryHoverBackground);
+    transform: translateY(-1px);
+    border-color: var(--vscode-button-secondaryBackground);
+}
+
+.copy-button:active, .copy-all-button:active {
+    transform: translateY(0);
 }
 
 .copy-all {
     display: flex;
     justify-content: flex-end;
-    margin-top: 10px;
+    margin-top: 20px;
 }
 
 .copy-all-button {
     padding: 8px 16px;
-    font-size: 14px;
-    background-color: var(--vscode-button-background);
+    font-size: 13px;
+    background: var(--gradient-primary);
     color: var(--vscode-button-foreground);
+    font-weight: 500;
+    border: none;
+    box-shadow: var(--shadow-sm);
+}
+
+.copy-all-button:before {
+    content: "📋";
+    font-size: 14px;
 }
 
 .copy-all-button:hover {
-    background-color: var(--vscode-button-hoverBackground);
+    background: var(--gradient-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
 }
 
 /* Markdown Styles */
 .markdown-body {
     line-height: 1.6;
+    font-size: 14px;
 }
 
 .markdown-body h1,
@@ -197,10 +352,11 @@ label {
     margin-bottom: 16px;
     font-weight: 600;
     line-height: 1.25;
+    letter-spacing: -0.02em;
 }
 
 .markdown-body h1 {
-    font-size: 2em;
+    font-size: 1.8em;
     border-bottom: 1px solid var(--vscode-panel-border);
     padding-bottom: 0.3em;
 }
@@ -221,12 +377,16 @@ label {
     margin-bottom: 16px;
 }
 
+.markdown-body li {
+    margin-bottom: 6px;
+}
+
 .markdown-body code {
     padding: 0.2em 0.4em;
     margin: 0;
     font-size: 85%;
-    background-color: var(--vscode-textCodeBlock-background);
-    border-radius: 3px;
+    background-color: color-mix(in srgb, var(--vscode-textCodeBlock-background) 97%, var(--vscode-button-background));
+    border-radius: 4px;
     font-family: var(--vscode-editor-font-family);
 }
 
@@ -236,6 +396,22 @@ label {
     font-size: 85%;
     line-height: 1.45;
     background-color: var(--vscode-textCodeBlock-background);
-    border-radius: 3px;
+    border-radius: var(--border-radius-sm);
     margin-bottom: 16px;
+    border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 90%, transparent);
+}
+
+.markdown-body p {
+    margin-bottom: 16px;
+    margin-top: 0;
+}
+
+.markdown-body blockquote {
+    padding: 0.8em 1em;
+    color: var(--vscode-foreground);
+    opacity: 0.8;
+    border-left: 3px solid var(--vscode-button-background);
+    margin: 0 0 16px 0;
+    background: color-mix(in srgb, var(--vscode-editor-background) 97%, var(--vscode-button-background));
+    border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0;
 }
