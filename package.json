@@ -200,6 +200,16 @@
             "Low"
           ],
           "description": "Severity levels for categorizing issues in PR reviews"
+        },
+        "copilotPlusPlus.prReview.includeLogicalErrors": {
+          "type": "boolean",
+          "default": true,
+          "description": "Check for logical errors, edge cases, and flawed business logic implementation during PR reviews"
+        },
+        "copilotPlusPlus.prReview.includeTestingGaps": {
+          "type": "boolean",
+          "default": true,
+          "description": "Identify missing or inadequate test coverage during PR reviews"
         }
       }
     }

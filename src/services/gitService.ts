@@ -16,6 +16,168 @@ interface CommitContext {
   timestamp?: string;
 }
 
+/**
+ * Parse detailed line context from git diff
+ * Structure returned helps to map diff line numbers to actual file line numbers
+ */
+async function parseGitDiffWithLineDetails(diff: string): Promise<DetailedDiffResult[]> {
+  // Parse diff to extract precise line numbers and content
+  const diffResults: DetailedDiffResult[] = [];
+  
+  // Split diff into file chunks
+  const fileChunks = diff.split(/^diff --git /m);
+  
+  for (const chunk of fileChunks) {
+    if (!chunk.trim()) {
+      continue;
+    }
+    
+    // Start with 'diff --git' prefix that was removed by split
+    const fileChunk = `diff --git ${chunk}`;
+    
+    // Extract file name
+    const fileNameMatch = fileChunk.match(/^diff --git a\/(.+) b\/(.+)$/m);
+    if (!fileNameMatch) {
+      continue;
+    }
+    
+    const filePath = fileNameMatch[2]; // Use the new file name (b/)
+    
+    // Process the chunk's content sections (hunks)
+    const hunks = fileChunk.split(/^@@/m).slice(1); // Skip the header part
+    let currentHunk: DetailedDiffHunk | null = null;
+    
+    for (const hunkContent of hunks) {
+      const hunkHeaderMatch = hunkContent.match(/^[ -+](-\d+,\d+ \+\d+,\d+) @@/);
+      if (!hunkHeaderMatch) {
+        continue;
+      }
+      
+      const hunkHeader = hunkHeaderMatch[1];
+      const [oldRange, newRange] = hunkHeader.split(' ');
+      
+      // Parse line ranges
+      const oldStart = parseInt(oldRange.substring(1).split(',')[0], 10);
+      const newStart = parseInt(newRange.substring(1).split(',')[0], 10);
+      
+      // Process hunk content line by line
+      const hunkLines = hunkContent.split('\n').slice(1); // Skip the hunk header line
+      let oldLineNum = oldStart;
+      let newLineNum = newStart;
+      
+      currentHunk = {
+        oldStart,
+        newStart,
+        lines: []
+      };
+      
+      // Process each line in the hunk
+      for (const line of hunkLines) {
+        if (!line) {
+          continue;
+        }
+        
+        const type = line[0];
+        const content = line.substring(1);
+        
+        switch (type) {
+          case '+': // Added line
+            currentHunk.lines.push({
+              type: 'added',
+              oldLineNum: null,
+              newLineNum: newLineNum++,
+              content
+            });
+            break;
+          case '-': // Removed line
+            currentHunk.lines.push({
+              type: 'removed',
+              oldLineNum: oldLineNum++,
+              newLineNum: null,
+              content
+            });
+            break;
+          case ' ': // Context line (unchanged)
+            currentHunk.lines.push({
+              type: 'context',
+              oldLineNum: oldLineNum++,
+              newLineNum: newLineNum++,
+              content
+            });
+            break;
+        }
+      }
+      
+      // Create detailed result for this file+hunk
+      if (currentHunk.lines.length > 0) {
+        diffResults.push({
+          filePath,
+          hunk: currentHunk,
+          contextBefore: extractLinesAround(currentHunk, 'before', 3),
+          contextAfter: extractLinesAround(currentHunk, 'after', 3)
+        });
+      }
+    }
+  }
+  
+  return diffResults;
+}
+
+/**
+ * Extract context lines around a change in a hunk
+ */
+function extractLinesAround(hunk: DetailedDiffHunk, position: 'before' | 'after', count: number): string[] {
+  const context: string[] = [];
+  
+  if (position === 'before') {
+    // Get lines before first added or removed line
+    const firstChangeIndex = hunk.lines.findIndex(l => l.type !== 'context');
+    if (firstChangeIndex !== -1) {
+      for (let i = Math.max(0, firstChangeIndex - count); i < firstChangeIndex; i++) {
+        if (hunk.lines[i].type === 'context') {
+          context.push(hunk.lines[i].content);
+        }
+      }
+    }
+  } else { // after
+    // Get lines after last added or removed line
+    const lastChangeIndex = [...hunk.lines].reverse().findIndex(l => l.type !== 'context');
+    if (lastChangeIndex !== -1) {
+      const lastIndex = hunk.lines.length - 1 - lastChangeIndex;
+      for (let i = lastIndex + 1; i < Math.min(hunk.lines.length, lastIndex + 1 + count); i++) {
+        if (hunk.lines[i]?.type === 'context') {
+          context.push(hunk.lines[i].content);
+        }
+      }
+    }
+  }
+  
+  return context;
+}
+
+/**
+ * Types for improved diff parsing
+ */
+export interface DetailedDiffLine {
+  type: 'added' | 'removed' | 'context';
+  oldLineNum: number | null;
+  newLineNum: number | null;
+  content: string;
+}
+
+export interface DetailedDiffHunk {
+  oldStart: number;
+  newStart: number;
+  lines: DetailedDiffLine[];
+}
+
+export interface DetailedDiffResult {
+  filePath: string;
+  hunk: DetailedDiffHunk;
+  contextBefore: string[];
+  contextAfter: string[];
+}
+
 export class GitService {
   private _logger: LoggingService;
 
@@ -221,6 +383,39 @@ export class GitService {
       return branches;
     } catch (error) {
       this.logError('Error getting available branches', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get detailed diff between branches with precise line information
+   */
+  async getDetailedDiffBetweenBranches(sourceBranch: string, targetBranch: string): Promise<DetailedDiffResult[]> {
+    this.log(`Getting detailed diff between branches: ${sourceBranch} and ${targetBranch}`);
+
+    try {
+      const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
+      if (!workspaceRoot) {
+        throw new Error('No workspace folder open');
+      }
+
+      // Get the raw diff
+      const { stdout } = await execAsync(`git diff --patch ${targetBranch}...${sourceBranch}`, {
+        cwd: workspaceRoot,
+      });
+
+      if (!stdout.trim()) {
+        this.log('No detailed diff found between branches');
+        return [];
+      }
+
+      // Parse the diff with precise line tracking
+      const detailedDiff = await parseGitDiffWithLineDetails(stdout);
+      this.log(`Processed ${detailedDiff.length} diff chunks with detailed line information`);
+
+      return detailedDiff;
+    } catch (error) {
+      this.logError('Error getting detailed diff between branches', error);
       return [];
     }
   }
