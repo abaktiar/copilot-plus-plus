@@ -47,7 +47,7 @@ export class ConfigService {
      */
     public static getLanguageModelFamily(): string {
         const config = vscode.workspace.getConfiguration('copilotPlusPlus');
-        return config.get<string>('languageModel') || 'gpt-4o';
+        return config.get<string>('languageModel') || 'copilot';
     }
 
     /**

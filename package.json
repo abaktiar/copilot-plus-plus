@@ -34,7 +34,8 @@
   },
   "activationEvents": [
     "onStartupFinished",
-    "onView:scm"
+    "onView:scm",
+    "onView:copilotPlusPlusView"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -74,6 +75,24 @@
           "command": "copilot-plus-plus.generateCommitMessage",
           "group": "navigation",
           "when": "scmProvider == git"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "copilot-plus-plus",
+          "title": "PR Generator",
+          "icon": "$(git-pull-request)"
+        }
+      ]
+    },
+    "views": {
+      "copilot-plus-plus": [
+        {
+          "id": "copilotPlusPlusView",
+          "name": "PR Description",
+          "type": "webview"
         }
       ]
     },
