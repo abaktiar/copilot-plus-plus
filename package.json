@@ -3,7 +3,7 @@
   "displayName": "Copilot Plus Plus",
   "description": "Enhances GitHub Copilot with AI-powered commit message generation",
   "version": "0.0.3",
-  "publisher": "albaktiar",
+  "publisher": "abaktiar",
   "engines": {
     "vscode": "^1.98.0"
   },
@@ -24,7 +24,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/albaktiar/copilot-plus-plus"
+    "url": "https://github.com/abaktiar/copilot-plus-plus"
   },
   "license": "MIT",
   "icon": "images/icon.png",
