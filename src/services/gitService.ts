@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { ConfigService } from './configService';
+import { LoggingService } from './loggingService';
 
 const execAsync = promisify(exec);
 
@@ -16,37 +17,69 @@ interface CommitContext {
 }
 
 export class GitService {
+  private _logger: LoggingService;
+
+  constructor() {
+    this._logger = LoggingService.getInstance();
+  }
+
+  /**
+   * Log a message to the output channel
+   */
+  private log(message: string): void {
+    this._logger.log(message, 'GitService');
+  }
+
+  /**
+   * Log an error to the output channel
+   */
+  private logError(message: string, error?: any): void {
+    this._logger.logError(message, error, 'GitService');
+  }
+
   /**
    * Get the Git repository for the current workspace
    */
   async getGitRepo(): Promise<vscode.SourceControl | undefined> {
-    const gitExtension = vscode.extensions.getExtension('vscode.git')?.exports;
-    if (!gitExtension) {
+    this.log('Getting Git repository for current workspace');
+    try {
+      const gitExtension = vscode.extensions.getExtension('vscode.git')?.exports;
+      if (!gitExtension) {
+        this.logError('Git extension not found');
+        return undefined;
+      }
+
+      const api = gitExtension.getAPI(1);
+      if (!api) {
+        this.logError('Git API not available');
+        return undefined;
+      }
+
+      if (api.repositories.length === 0) {
+        this.logError('No Git repositories found in workspace');
+        return undefined;
+      }
+
+      this.log(`Found Git repository: ${api.repositories[0].rootUri.fsPath}`);
+      return api.repositories[0];
+    } catch (error) {
+      this.logError('Failed to get Git repository', error);
       return undefined;
     }
-
-    const api = gitExtension.getAPI(1);
-    if (!api) {
-      return undefined;
-    }
-
-    if (api.repositories.length === 0) {
-      return undefined;
-    }
-
-    return api.repositories[0];
   }
 
   /**
    * Get the commit template if configured
    */
   async getCommitTemplate(workspaceRoot: string): Promise<string | undefined> {
+    this.log('Getting commit template');
     try {
       // Try to get local commit template
       const { stdout: localTemplate } = await execAsync('git config commit.template', { cwd: workspaceRoot }).catch(
         () => ({ stdout: '' })
       );
       if (localTemplate.trim()) {
+        this.log('Found local commit template');
         return localTemplate.trim();
       }
 
@@ -54,8 +87,16 @@ export class GitService {
       const { stdout: globalTemplate } = await execAsync('git config --global commit.template', {
         cwd: workspaceRoot,
       }).catch(() => ({ stdout: '' }));
+
+      if (globalTemplate.trim()) {
+        this.log('Found global commit template');
+      } else {
+        this.log('No commit template found');
+      }
+
       return globalTemplate.trim() || undefined;
-    } catch {
+    } catch (error) {
+      this.logError('Error getting commit template', error);
       return undefined;
     }
   }
@@ -64,10 +105,14 @@ export class GitService {
    * Get recent commit messages for style reference
    */
   async getRecentCommits(workspaceRoot: string, count: number = 5): Promise<string[]> {
+    this.log(`Getting ${count} recent commit messages`);
     try {
       const { stdout } = await execAsync(`git log -${count} --pretty=format:%s`, { cwd: workspaceRoot });
-      return stdout.split('\n').filter((msg) => msg.trim());
-    } catch {
+      const commits = stdout.split('\n').filter((msg) => msg.trim());
+      this.log(`Found ${commits.length} recent commits`);
+      return commits;
+    } catch (error) {
+      this.logError('Error getting recent commits', error);
       return [];
     }
   }
@@ -76,9 +121,11 @@ export class GitService {
    * Get the current branch name and extract ticket number
    */
   private async getBranchInfo(workspaceRoot: string): Promise<{ branch: string; ticketNumber: string | undefined }> {
+    this.log('Getting branch info');
     try {
       const { stdout: branchName } = await execAsync('git rev-parse --abbrev-ref HEAD', { cwd: workspaceRoot });
       const branch = branchName.trim();
+      this.log(`Current branch: ${branch}`);
 
       // Get ticket pattern from configuration
       const config = ConfigService.getCommitMessageConfig();
@@ -90,11 +137,16 @@ export class GitService {
         const ticketRegex = new RegExp(config.ticketPattern);
         const ticketMatch = branch.match(ticketRegex);
         ticketNumber = ticketMatch ? ticketMatch[1] : undefined;
+        if (ticketNumber) {
+          this.log(`Extracted ticket number: ${ticketNumber}`);
+        } else {
+          this.log('No ticket number found in branch name');
+        }
       }
 
       return { branch, ticketNumber };
     } catch (error) {
-      console.error('Error getting branch info:', error);
+      this.logError('Error getting branch info', error);
       return { branch: 'unknown', ticketNumber: undefined };
     }
   }
@@ -103,6 +155,7 @@ export class GitService {
    * Get commit context data to help generate meaningful commit messages
    */
   async getCommitContext(workspaceRoot: string): Promise<CommitContext> {
+    this.log('Getting commit context');
     try {
       const [diffResult, filesResult, template, recentCommits, branchInfo] = await Promise.all([
         execAsync('git diff --staged', { cwd: workspaceRoot }),
@@ -122,6 +175,8 @@ export class GitService {
           return { status, file };
         });
 
+      this.log(`Found ${changedFiles.length} changed files`);
+
       return {
         diff: diffResult.stdout,
         files: changedFiles,
@@ -132,7 +187,7 @@ export class GitService {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      console.error('Error getting commit context:', error);
+      this.logError('Error getting commit context', error);
       // Return empty but valid CommitContext on error
       return {
         diff: '',
@@ -145,6 +200,7 @@ export class GitService {
    * Get all available branches in the repository
    */
   async getAvailableBranches(): Promise<string[]> {
+    this.log('Getting available branches');
     try {
       const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
       if (!workspaceRoot) {
@@ -161,9 +217,10 @@ export class GitService {
         .filter((b) => b && !b.includes('HEAD ->')) // Remove empty lines and HEAD pointers
         .filter((b, i, self) => self.indexOf(b) === i); // Remove duplicates
 
+      this.log(`Found ${branches.length} branches`);
       return branches;
     } catch (error) {
-      console.error('Error getting available branches:', error);
+      this.logError('Error getting available branches', error);
       return [];
     }
   }
@@ -185,6 +242,7 @@ export class GitService {
       date: string;
     }>
   > {
+    this.log(`Getting commits between branches: ${sourceBranch} and ${targetBranch}`);
     try {
       const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
       if (!workspaceRoot) {
@@ -198,19 +256,23 @@ export class GitService {
       );
 
       if (!stdout.trim()) {
+        this.log('No commits found between branches');
         return [];
       }
 
       // Parse commits and map them to objects
-      return stdout
+      const commits = stdout
         .split('\n')
         .filter((line) => line.trim())
         .map((line) => {
           const [hash, subject, body, author, date] = line.split('|');
           return { hash, subject, body, author, date };
         });
+
+      this.log(`Found ${commits.length} commits between branches`);
+      return commits;
     } catch (error) {
-      console.error('Error getting commits between branches:', error);
+      this.logError('Error getting commits between branches', error);
       return [];
     }
   }
@@ -221,6 +283,7 @@ export class GitService {
    * @param targetBranch Target branch name
    */
   async getDiffBetweenBranches(sourceBranch: string, targetBranch: string): Promise<string> {
+    this.log(`Getting diff between branches: ${sourceBranch} and ${targetBranch}`);
     try {
       const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
       if (!workspaceRoot) {
@@ -232,9 +295,15 @@ export class GitService {
         cwd: workspaceRoot,
       });
 
+      if (!stdout.trim()) {
+        this.log('No diff found between branches');
+      } else {
+        this.log(`Got diff between branches (${stdout.length} bytes)`);
+      }
+
       return stdout;
     } catch (error) {
-      console.error('Error getting diff between branches:', error);
+      this.logError('Error getting diff between branches', error);
       return '';
     }
   }
@@ -253,6 +322,7 @@ export class GitService {
       file: string;
     }>
   > {
+    this.log(`Getting changed files between branches: ${sourceBranch} and ${targetBranch}`);
     try {
       const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
       if (!workspaceRoot) {
@@ -265,11 +335,12 @@ export class GitService {
       });
 
       if (!stdout.trim()) {
+        this.log('No files changed between branches');
         return [];
       }
 
       // Parse the output into an array of file objects
-      return stdout
+      const files = stdout
         .split('\n')
         .filter((line) => line.trim())
         .map((line) => {
@@ -277,8 +348,11 @@ export class GitService {
           const file = fileParts.join('\t');
           return { status, file };
         });
+
+      this.log(`Found ${files.length} changed files between branches`);
+      return files;
     } catch (error) {
-      console.error('Error getting files between branches:', error);
+      this.logError('Error getting files between branches', error);
       return [];
     }
   }
@@ -289,6 +363,7 @@ export class GitService {
    * @param filePath Path to the file
    */
   async getFileContentFromBranch(branch: string, filePath: string): Promise<string> {
+    this.log(`Getting file content from branch ${branch}: ${filePath}`);
     try {
       const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
       if (!workspaceRoot) {
@@ -298,9 +373,10 @@ export class GitService {
       // Get file content from the specified branch
       const { stdout } = await execAsync(`git show ${branch}:${filePath}`, { cwd: workspaceRoot });
 
+      this.log(`Got file content from ${branch}:${filePath} (${stdout.length} bytes)`);
       return stdout;
     } catch (error) {
-      console.error(`Error getting file content from branch ${branch}:`, error);
+      this.logError(`Error getting file content from branch ${branch}: ${filePath}`, error);
       return '';
     }
   }
@@ -309,6 +385,7 @@ export class GitService {
    * Get the current branch name
    */
   async getCurrentBranch(): Promise<string> {
+    this.log('Getting current branch name');
     try {
       const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
       if (!workspaceRoot) {
@@ -316,9 +393,12 @@ export class GitService {
       }
 
       const { stdout } = await execAsync('git rev-parse --abbrev-ref HEAD', { cwd: workspaceRoot });
-      return stdout.trim();
+      const branch = stdout.trim();
+
+      this.log(`Current branch: ${branch}`);
+      return branch;
     } catch (error) {
-      console.error('Error getting current branch:', error);
+      this.logError('Error getting current branch', error);
       return '';
     }
   }
