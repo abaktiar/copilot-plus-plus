@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ConfigService, CommitMessageConfig, PrDescriptionConfig } from './configService';
+import { ConfigService, CommitMessageConfig, PrDescriptionConfig, PrReviewConfig } from './configService';
 
 export class PromptService {
   private static readonly COMMIT_INTRO =
@@ -60,6 +60,54 @@ Format the response as a JSON object with two fields:
 
   private static readonly PR_GROUP_COMMITS_INSTRUCTION =
     'Group related commits by their type (e.g., features, bug fixes, refactoring) in the PR description.';
+
+  // PR Review prompt templates
+  private static readonly PR_REVIEW_INTRO =
+    'You are a code review assistant tasked with analyzing the changes in a pull request.';
+
+  private static readonly PR_REVIEW_INSTRUCTION = `Review the provided code changes between branches and identify any issues in the following categories:
+{SECURITY_INSTRUCTION}
+{CODE_STYLE_INSTRUCTION}
+{PERFORMANCE_INSTRUCTION}
+{BREAKING_CHANGES_INSTRUCTION}
+
+For each issue found:
+1. Determine appropriate severity level from: {SEVERITY_LEVELS}
+2. Provide clear description of the issue
+3. Include the exact file path
+4. Include specific line number when possible
+5. Offer a concise suggestion for fixing the issue when applicable
+
+Also provide a summary assessment of the code changes overall.
+
+Format the response as a JSON object with the following structure:
+{
+  "summary": "Overall assessment of the code changes",
+  "issues": [
+    {
+      "severity": "Critical|High|Medium|Low",
+      "category": "Security|Code Style|Performance|Breaking Change|Other",
+      "description": "Clear description of the issue",
+      "filePath": "path/to/file.ext",
+      "lineNumber": 123,
+      "suggestion": "Suggestion to fix the issue"
+    }
+  ]
+}
+
+If no issues are found, return an empty issues array with a positive summary.`;
+
+  private static readonly PR_REVIEW_SECURITY =
+    'Check for security vulnerabilities such as injection flaws, authentication issues, sensitive data exposure, broken access controls, and insecure dependencies.';
+
+  private static readonly PR_REVIEW_CODE_STYLE =
+    'Verify code follows project conventions, is well-formatted, has meaningful variable/function names, includes proper documentation, and follows best practices for the language/framework.';
+
+  private static readonly PR_REVIEW_PERFORMANCE =
+    'Identify performance concerns such as inefficient algorithms, N+1 queries, memory leaks, unnecessary recomputation, or unoptimized resource usage.';
+
+  private static readonly PR_REVIEW_BREAKING_CHANGES =
+    'Check for breaking changes such as modified public APIs, changed function signatures, altered database schemas, or incompatible dependency updates.';
 
   public static buildPrompt(context: {
     files: any[];
@@ -181,6 +229,79 @@ ${context.diff.length > 10000 ? context.diff.substring(0, 10000) + '\n... (diff 
           .replace('{TECHNICAL_INSTRUCTION}', technicalInstruction)
           .replace('{GROUP_COMMITS_INSTRUCTION}', groupCommitsInstruction)
       ),
+    ];
+  }
+
+  /**
+   * Build prompt messages for PR review
+   */
+  public static buildPrReviewPrompt(context: {
+    sourceBranch: string;
+    targetBranch: string;
+    commits: Array<{
+      hash: string;
+      subject: string;
+      body: string;
+      author: string;
+      date: string;
+    }>;
+    diff: string;
+    files?: Array<{ status: string; file: string }>;
+  }): vscode.LanguageModelChatMessage[] {
+    // Get configuration
+    const config = ConfigService.getPrReviewConfig();
+
+    // Format commits for display
+    const commitsFormatted = context.commits
+      .map(
+        (c) =>
+          `Hash: ${c.hash.substring(0, 7)}\nAuthor: ${c.author}\nDate: ${c.date}\nSubject: ${c.subject}\nBody: ${
+            c.body
+          }`
+      )
+      .join('\n\n');
+
+    // Format files if available
+    const filesFormatted =
+      context.files && context.files.length > 0
+        ? context.files.map((f) => `${f.status} ${f.file}`).join('\n')
+        : 'File list not available';
+
+    // Build the context message
+    const contextMessage = `
+Pull Request Review Context:
+Source Branch: ${context.sourceBranch}
+Target Branch: ${context.targetBranch}
+
+Commits (${context.commits.length}):
+${commitsFormatted || 'No commits found between branches'}
+
+Files Changed:
+${filesFormatted}
+
+Changes (git diff - truncated if large):
+${context.diff.length > 10000 ? context.diff.substring(0, 10000) + '\n... (diff truncated)' : context.diff}
+`;
+
+    // Add review instruction components based on config
+    const securityInstruction = config.includeSecurity ? this.PR_REVIEW_SECURITY : '';
+    const codeStyleInstruction = config.includeCodeStyle ? this.PR_REVIEW_CODE_STYLE : '';
+    const performanceInstruction = config.includePerformance ? this.PR_REVIEW_PERFORMANCE : '';
+    const breakingChangesInstruction = config.includeBreakingChanges ? this.PR_REVIEW_BREAKING_CHANGES : '';
+    const severityLevels = config.severityLevels.join('|');
+
+    // Create the final instruction
+    const reviewInstruction = this.PR_REVIEW_INSTRUCTION.replace('{SECURITY_INSTRUCTION}', securityInstruction)
+      .replace('{CODE_STYLE_INSTRUCTION}', codeStyleInstruction)
+      .replace('{PERFORMANCE_INSTRUCTION}', performanceInstruction)
+      .replace('{BREAKING_CHANGES_INSTRUCTION}', breakingChangesInstruction)
+      .replace('{SEVERITY_LEVELS}', severityLevels);
+
+    // Create the messages array
+    return [
+      vscode.LanguageModelChatMessage.User(this.PR_REVIEW_INTRO),
+      vscode.LanguageModelChatMessage.User(contextMessage),
+      vscode.LanguageModelChatMessage.User(reviewInstruction),
     ];
   }
 

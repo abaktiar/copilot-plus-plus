@@ -26,6 +26,18 @@ interface PrContext {
   files?: Array<{ status: string; file: string }>;
 }
 
+interface PrReviewResult {
+  summary: string;
+  issues: Array<{
+    severity: string;
+    category: string;
+    description: string;
+    filePath: string;
+    lineNumber?: number;
+    suggestion?: string;
+  }>;
+}
+
 export class CopilotService {
   private _logger: LoggingService;
 
@@ -241,6 +253,113 @@ export class CopilotService {
           throw new Error(
             'Failed to generate PR description: ' + (error instanceof Error ? error.message : String(error))
           );
+        }
+      }
+    );
+  }
+
+  /**
+   * Review PR changes using GitHub Copilot
+   */
+  async reviewPrChanges(prContext: PrContext): Promise<PrReviewResult> {
+    return await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: 'Reviewing PR changes...',
+        cancellable: true,
+      },
+      async (progress, token) => {
+        try {
+          this._logger.show(true);
+          this.log('Starting PR review...');
+          this.log(`Source branch: ${prContext.sourceBranch}`);
+          this.log(`Target branch: ${prContext.targetBranch}`);
+          this.log(`Commits: ${prContext.commits.length}`);
+          this.log(`Files changed: ${prContext.files?.length || 'unknown'}`);
+
+          progress.report({ increment: 20, message: 'Initializing language model...' });
+
+          // Get the configured language model family
+          const modelFamily = ConfigService.getLanguageModelFamily();
+          this.log(`Using language model family: ${modelFamily}`);
+
+          // Select the configured Copilot model
+          const [model] = await vscode.lm.selectChatModels({
+            vendor: 'copilot',
+            family: modelFamily,
+          });
+
+          if (!model) {
+            const errorMsg = `No suitable language model found for: ${modelFamily}. Please make sure GitHub Copilot is installed and enabled.`;
+            this.logError(errorMsg);
+            throw new Error(errorMsg);
+          }
+
+          progress.report({ increment: 20, message: 'Building prompt...' });
+
+          // Get messages array from PromptService
+          const messages = PromptService.buildPrReviewPrompt(prContext);
+          this.log('Prompt built, sending request to Copilot...');
+
+          progress.report({ increment: 30, message: 'Analyzing code changes...' });
+
+          // Send the request to the language model
+          const response = await model.sendRequest(messages, {}, token);
+
+          // Stream and collect the response
+          let responseContent = '';
+          progress.report({ increment: 20, message: 'Receiving analysis...' });
+          for await (const fragment of response.text) {
+            responseContent += fragment;
+          }
+
+          progress.report({ increment: 10, message: 'Processing results...' });
+
+          // Parse the JSON response
+          try {
+            // Find JSON object in the response
+            const jsonMatch = responseContent.match(/\{[\s\S]*\}/);
+            const jsonString = jsonMatch ? jsonMatch[0] : responseContent;
+            const result = JSON.parse(jsonString) as PrReviewResult;
+
+            if (!result.summary || !result.issues) {
+              throw new Error('Invalid response format');
+            }
+
+            this.log('PR review completed successfully');
+            this.log(`Found ${result.issues.length} issues`);
+
+            return result;
+          } catch (parseError) {
+            this.logError('Error parsing PR review JSON: ' + parseError);
+
+            // Fallback: Create a basic result with error information
+            const fallbackResult: PrReviewResult = {
+              summary: 'Error while parsing review results. See raw response below.',
+              issues: [
+                {
+                  severity: 'Error',
+                  category: 'Parser Error',
+                  description:
+                    'Failed to parse the response from Copilot. Raw response: ' +
+                    responseContent.substring(0, 200) +
+                    '...',
+                  filePath: '',
+                  suggestion: 'Try running the review again or check the output log for more details.',
+                },
+              ],
+            };
+
+            return fallbackResult;
+          }
+        } catch (error) {
+          this.logError('Error reviewing PR changes: ' + error);
+
+          if (error instanceof vscode.LanguageModelError) {
+            throw new Error(`Failed to review PR changes: ${error.message} (${error.code})`);
+          }
+
+          throw new Error('Failed to review PR changes: ' + (error instanceof Error ? error.message : String(error)));
         }
       }
     );
