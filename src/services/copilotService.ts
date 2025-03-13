@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { PromptService } from './promptService';
 import { ConfigService } from './configService';
 import { LoggingService } from './loggingService';
+import { DetailedDiffResult } from './gitService';
 
 interface CommitContext {
   diff: string;
@@ -23,11 +24,17 @@ interface PrContext {
     date: string;
   }>;
   diff: string;
+  detailedDiff?: DetailedDiffResult[];
   files?: Array<{ status: string; file: string }>;
 }
 
 interface PrReviewResult {
-  summary: string;
+  summary: {
+    assessment: string;
+    strengths: string[];
+    criticalIssues: string[];
+    recommendations: string[];
+  };
   issues: Array<{
     severity: string;
     category: string;
@@ -35,6 +42,7 @@ interface PrReviewResult {
     filePath: string;
     lineNumber?: number;
     suggestion?: string;
+    justification?: string;
   }>;
 }
 
@@ -258,6 +266,43 @@ export class CopilotService {
     );
   }
 
+  private static extendedPrReviewResponse(result: any): PrReviewResult {
+    // Return valid response format even on parsing errors
+    const fallbackResult: PrReviewResult = {
+      summary: {
+        assessment: 'Error while parsing review results. See raw response below.',
+        strengths: [],
+        criticalIssues: ['Failed to parse the Copilot response'],
+        recommendations: ['Try running the review again'],
+      },
+      issues: [
+        {
+          severity: 'Error',
+          category: 'Parser Error',
+          description:
+            'Failed to parse the response from Copilot. Raw response: ' +
+            (typeof result === 'string' ? result.substring(0, 200) + '...' : 'Invalid response type'),
+          filePath: '',
+          suggestion: 'Try running the review again or check the output log for more details.',
+        },
+      ],
+    };
+
+    // Validate the response format
+    if (!result?.summary?.assessment || !Array.isArray(result?.issues)) {
+      return fallbackResult;
+    }
+
+    // Ensure all arrays exist even if empty
+    result.summary.strengths = Array.isArray(result.summary.strengths) ? result.summary.strengths : [];
+    result.summary.criticalIssues = Array.isArray(result.summary.criticalIssues) ? result.summary.criticalIssues : [];
+    result.summary.recommendations = Array.isArray(result.summary.recommendations)
+      ? result.summary.recommendations
+      : [];
+
+    return result;
+  }
+
   /**
    * Review PR changes using GitHub Copilot
    */
@@ -296,11 +341,9 @@ export class CopilotService {
           }
 
           progress.report({ increment: 20, message: 'Building prompt...' });
-
-          // Get messages array from PromptService
           const messages = PromptService.buildPrReviewPrompt(prContext);
-          this.log('Prompt built, sending request to Copilot...');
 
+          this.log('Prompt built, sending request to Copilot...');
           progress.report({ increment: 30, message: 'Analyzing code changes...' });
 
           // Send the request to the language model
@@ -320,41 +363,18 @@ export class CopilotService {
             // Find JSON object in the response
             const jsonMatch = responseContent.match(/\{[\s\S]*\}/);
             const jsonString = jsonMatch ? jsonMatch[0] : responseContent;
-            const result = JSON.parse(jsonString) as PrReviewResult;
-
-            if (!result.summary || !result.issues) {
-              throw new Error('Invalid response format');
-            }
+            const parsedResult = JSON.parse(jsonString);
+            const result = CopilotService.extendedPrReviewResponse(parsedResult);
 
             this.log('PR review completed successfully');
             this.log(`Found ${result.issues.length} issues`);
-
             return result;
           } catch (parseError) {
             this.logError('Error parsing PR review JSON: ' + parseError);
-
-            // Fallback: Create a basic result with error information
-            const fallbackResult: PrReviewResult = {
-              summary: 'Error while parsing review results. See raw response below.',
-              issues: [
-                {
-                  severity: 'Error',
-                  category: 'Parser Error',
-                  description:
-                    'Failed to parse the response from Copilot. Raw response: ' +
-                    responseContent.substring(0, 200) +
-                    '...',
-                  filePath: '',
-                  suggestion: 'Try running the review again or check the output log for more details.',
-                },
-              ],
-            };
-
-            return fallbackResult;
+            return CopilotService.extendedPrReviewResponse(responseContent);
           }
         } catch (error) {
           this.logError('Error reviewing PR changes: ' + error);
-
           if (error instanceof vscode.LanguageModelError) {
             throw new Error(`Failed to review PR changes: ${error.message} (${error.code})`);
           }

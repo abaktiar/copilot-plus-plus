@@ -20,6 +20,8 @@ export interface PrReviewConfig {
   includeBreakingChanges: boolean;
   enableInlineLinks: boolean;
   severityLevels: string[];
+  includeLogicalErrors: boolean;
+  includeTestingGaps: boolean;
 }
 
 /**
@@ -63,6 +65,8 @@ export class ConfigService {
       includeBreakingChanges: config.get<boolean>('prReview.includeBreakingChanges') ?? true,
       enableInlineLinks: config.get<boolean>('prReview.enableInlineLinks') ?? true,
       severityLevels: config.get<string[]>('prReview.severityLevels') || ['Critical', 'High', 'Medium', 'Low'],
+      includeLogicalErrors: config.get<boolean>('prReview.includeLogicalErrors') ?? true,
+      includeTestingGaps: config.get<boolean>('prReview.includeTestingGaps') ?? true,
     };
   }
 

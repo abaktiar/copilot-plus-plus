@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { ConfigService, CommitMessageConfig, PrDescriptionConfig, PrReviewConfig } from './configService';
+import { DetailedDiffLine } from './gitService';
 
 const MAX_CONTEXT_LENGTH = 100000; // 1 lakh characters
 
@@ -65,34 +66,51 @@ Format the response as a JSON object with two fields:
 
   // PR Review prompt templates
   private static readonly PR_REVIEW_INTRO =
-    'You are a code review assistant tasked with analyzing the changes in a pull request.';
+    'You are an expert code review assistant with deep technical knowledge across multiple programming languages and frameworks.';
 
-  private static readonly PR_REVIEW_INSTRUCTION = `Review the provided code changes between branches and identify any issues in the following categories:
+  private static readonly PR_REVIEW_INSTRUCTION = `Analyze the provided git diff carefully and identify concrete issues in the following categories:
 {SECURITY_INSTRUCTION}
 {CODE_STYLE_INSTRUCTION}
 {PERFORMANCE_INSTRUCTION}
 {BREAKING_CHANGES_INSTRUCTION}
+{LOGICAL_ERRORS_INSTRUCTION}
+{TESTING_GAPS_INSTRUCTION}
 
 For each issue found:
-1. Determine appropriate severity level from: {SEVERITY_LEVELS}
-2. Provide clear description of the issue
-3. Include the exact file path
-4. Include specific line number when possible
-5. Offer a concise suggestion for fixing the issue when applicable
+1. Assign a severity level from: {SEVERITY_LEVELS}
+2. Provide a clear, specific description of the issue
+3. Include the exact file path from the git diff
+4. ALWAYS specify the precise line number shown in the git diff where the issue occurs
+5. Offer a specific, actionable code suggestion to fix the issue
+6. Explain briefly why your suggestion is better
 
-Also provide a summary assessment of the code changes overall.
+IMPORTANT: The git diff contains detailed line information that shows both old and new line numbers. When referring to lines, use the NEW line numbers (marked with + in the diff), not the old line numbers. Be extremely precise with line numbers.
+
+Examine both added and modified code. Focus on finding real issues that impact code quality, not stylistic preferences.
+
+Also provide a summary assessment of the code changes covering:
+1. Overall code quality assessment
+2. Key strengths of the changes
+3. Most critical issues to address
+4. Recommendations for improving the PR
 
 Format the response as a JSON object with the following structure:
 {
-  "summary": "Overall assessment of the code changes",
+  "summary": {
+    "assessment": "Overall assessment of the code changes",
+    "strengths": ["Key strength 1", "Key strength 2"],
+    "criticalIssues": ["Critical issue 1", "Critical issue 2"],
+    "recommendations": ["Recommendation 1", "Recommendation 2"]
+  },
   "issues": [
     {
       "severity": "Critical|High|Medium|Low",
-      "category": "Security|Code Style|Performance|Breaking Change|Other",
+      "category": "Security|Code Style|Performance|Breaking Change|Logical Error|Testing Gap|Other",
       "description": "Clear description of the issue",
       "filePath": "path/to/file.ext",
       "lineNumber": 123,
-      "suggestion": "Suggestion to fix the issue"
+      "suggestion": "Code suggestion to fix the issue",
+      "justification": "Brief explanation of why this suggestion improves the code"
     }
   ]
 }
@@ -100,16 +118,22 @@ Format the response as a JSON object with the following structure:
 If no issues are found, return an empty issues array with a positive summary.`;
 
   private static readonly PR_REVIEW_SECURITY =
-    'Check for security vulnerabilities such as injection flaws, authentication issues, sensitive data exposure, broken access controls, and insecure dependencies.';
+    'Check for security vulnerabilities such as injection flaws, authentication issues, sensitive data exposure, broken access controls, insecure dependencies, improper error handling that leaks sensitive information, and missing input validation.';
 
   private static readonly PR_REVIEW_CODE_STYLE =
-    'Verify code follows project conventions, is well-formatted, has meaningful variable/function names, includes proper documentation, and follows best practices for the language/framework.';
+    'Verify code follows project conventions, maintains consistent formatting, uses meaningful variable/function names, includes proper documentation/comments, follows language idioms, and avoids code duplication.';
 
   private static readonly PR_REVIEW_PERFORMANCE =
-    'Identify performance concerns such as inefficient algorithms, N+1 queries, memory leaks, unnecessary recomputation, or unoptimized resource usage.';
+    'Identify performance concerns such as inefficient algorithms, N+1 queries, memory leaks, unnecessary recomputation, unoptimized resource usage, inefficient data structures, and potential bottlenecks in critical paths.';
 
   private static readonly PR_REVIEW_BREAKING_CHANGES =
-    'Check for breaking changes such as modified public APIs, changed function signatures, altered database schemas, or incompatible dependency updates.';
+    'Check for breaking changes such as modified public APIs, changed function signatures, altered database schemas, incompatible dependency updates, renamed fields/methods, and changes to expected behavior.';
+
+  private static readonly PR_REVIEW_LOGICAL_ERRORS =
+    'Identify logical errors including off-by-one errors, incorrect conditionals, improper state management, race conditions, edge cases not handled, incorrect assumptions, and flawed business logic implementation.';
+
+  private static readonly PR_REVIEW_TESTING_GAPS =
+    "Check for missing or inadequate tests, particularly for new features or bug fixes, edge cases not covered, and test code that doesn't properly validate the expected behavior.";
 
   public static buildPrompt(context: {
     files: any[];
@@ -235,7 +259,7 @@ ${context.diff.length > 10000 ? context.diff.substring(0, 10000) + '\n... (diff 
   }
 
   /**
-   * Build prompt messages for PR review
+   * Build prompt messages for PR review with enhanced diff context
    */
   public static buildPrReviewPrompt(context: {
     sourceBranch: string;
@@ -248,6 +272,7 @@ ${context.diff.length > 10000 ? context.diff.substring(0, 10000) + '\n... (diff 
       date: string;
     }>;
     diff: string;
+    detailedDiff?: Array<any>;
     files?: Array<{ status: string; file: string }>;
   }): vscode.LanguageModelChatMessage[] {
     // Get configuration
@@ -269,6 +294,31 @@ ${context.diff.length > 10000 ? context.diff.substring(0, 10000) + '\n... (diff 
         ? context.files.map((f) => `${f.status} ${f.file}`).join('\n')
         : 'File list not available';
 
+    // Add detailed diff information if available
+    let detailedDiffFormatted = '';
+    if (context.detailedDiff && context.detailedDiff.length > 0) {
+      detailedDiffFormatted = '\n\nDetailed changes with precise line information:\n\n';
+
+      context.detailedDiff.forEach((diff) => {
+        detailedDiffFormatted += `File: ${diff.filePath}\n`;
+        detailedDiffFormatted += `Hunk: @@ -${diff.hunk.oldStart},... +${diff.hunk.newStart},... @@\n`;
+
+        // Add some of the actual lines with their type and line numbers
+        diff.hunk.lines.slice(0, 10).forEach((line: DetailedDiffLine) => {
+          const prefix = line.type === 'added' ? '+' : line.type === 'removed' ? '-' : ' ';
+          const oldLineInfo = line.oldLineNum ? `old:${line.oldLineNum}` : '     ';
+          const newLineInfo = line.newLineNum ? `new:${line.newLineNum}` : '     ';
+          detailedDiffFormatted += `[${oldLineInfo} ${newLineInfo}] ${prefix}${line.content}\n`;
+        });
+
+        if (diff.hunk.lines.length > 10) {
+          detailedDiffFormatted += `... and ${diff.hunk.lines.length - 10} more lines\n`;
+        }
+
+        detailedDiffFormatted += '\n';
+      });
+    }
+
     // Build the context message
     const contextMessage = `
 Pull Request Review Context:
@@ -282,11 +332,8 @@ Files Changed:
 ${filesFormatted}
 
 Changes (git diff - truncated if large):
-${
-  context.diff.length > MAX_CONTEXT_LENGTH
-    ? context.diff.substring(0, MAX_CONTEXT_LENGTH) + '\n... (diff truncated)'
-    : context.diff
-}
+${context.diff.length > 10000 ? context.diff.substring(0, 10000) + '\n... (diff truncated)' : context.diff}
+${detailedDiffFormatted}
 `;
 
     // Add review instruction components based on config
@@ -294,6 +341,8 @@ ${
     const codeStyleInstruction = config.includeCodeStyle ? this.PR_REVIEW_CODE_STYLE : '';
     const performanceInstruction = config.includePerformance ? this.PR_REVIEW_PERFORMANCE : '';
     const breakingChangesInstruction = config.includeBreakingChanges ? this.PR_REVIEW_BREAKING_CHANGES : '';
+    const logicalErrorsInstruction = config.includeLogicalErrors ? this.PR_REVIEW_LOGICAL_ERRORS : '';
+    const testingGapsInstruction = config.includeTestingGaps ? this.PR_REVIEW_TESTING_GAPS : '';
     const severityLevels = config.severityLevels.join('|');
 
     // Create the final instruction
@@ -301,6 +350,8 @@ ${
       .replace('{CODE_STYLE_INSTRUCTION}', codeStyleInstruction)
       .replace('{PERFORMANCE_INSTRUCTION}', performanceInstruction)
       .replace('{BREAKING_CHANGES_INSTRUCTION}', breakingChangesInstruction)
+      .replace('{LOGICAL_ERRORS_INSTRUCTION}', logicalErrorsInstruction)
+      .replace('{TESTING_GAPS_INSTRUCTION}', testingGapsInstruction)
       .replace('{SEVERITY_LEVELS}', severityLevels);
 
     // Create the messages array

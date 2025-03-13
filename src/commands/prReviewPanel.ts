@@ -78,7 +78,7 @@ export class PrReviewPanel {
 
                     case 'navigateToFile':
                         try {
-                            await this.navigateToFile(message.filePath, message.lineNumber);
+                            await this.navigateToFile(message.filePath, message.lineNumber, message.codeContext);
                         } catch (error) {
                             vscode.window.showErrorMessage('Failed to navigate to file');
                         }
@@ -92,32 +92,38 @@ export class PrReviewPanel {
 
     private async reviewPr(sourceBranch: string, targetBranch: string) {
         try {
-            this._panel.webview.postMessage({ command: 'startLoading' });
-            
-            const [commits, diff, files] = await Promise.all([
-                this._gitService.getCommitsBetweenBranches(sourceBranch, targetBranch),
-                this._gitService.getDiffBetweenBranches(sourceBranch, targetBranch),
-                this._gitService.getFilesBetweenBranches(sourceBranch, targetBranch)
-            ]);
+          this._panel.webview.postMessage({ command: 'startLoading' });
 
-            if (!commits.length && !files.length) {
-                throw new Error('No changes detected between the selected branches');
-            }
+          // Get diff data with enhanced line information
+          const [commits, diff, files, detailedDiff] = await Promise.all([
+            this._gitService.getCommitsBetweenBranches(sourceBranch, targetBranch),
+            this._gitService.getDiffBetweenBranches(sourceBranch, targetBranch),
+            this._gitService.getFilesBetweenBranches(sourceBranch, targetBranch),
+            this._gitService.getDetailedDiffBetweenBranches(sourceBranch, targetBranch),
+          ]);
 
-            const prContext = {
-                sourceBranch,
-                targetBranch,
-                commits,
-                diff,
-                files
-            };
+          if (!commits.length && !files.length) {
+            throw new Error('No changes detected between the selected branches');
+          }
 
-            const result = await this._copilotService.reviewPrChanges(prContext);
-            
-            this._panel.webview.postMessage({ 
-                command: 'reviewComplete',
-                result 
-            });
+          const prContext = {
+            sourceBranch,
+            targetBranch,
+            commits,
+            diff,
+            files,
+            detailedDiff,
+          };
+
+          const result = await this._copilotService.reviewPrChanges(prContext);
+
+          // Process review results to enhance navigation
+          const enhancedResult = this.enhanceReviewResults(result, detailedDiff);
+
+          this._panel.webview.postMessage({
+            command: 'reviewComplete',
+            result: enhancedResult,
+          });
         } catch (error) {
             console.error('PR review failed:', error);
             this._panel.webview.postMessage({ 
@@ -127,31 +133,162 @@ export class PrReviewPanel {
         }
     }
 
-    private async navigateToFile(filePath: string, lineNumber: number) {
-        try {
-            // Get the workspace root
-            const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
-            if (!workspaceRoot) {
-                throw new Error('No workspace folder open');
-            }
-
-            // Construct full path and open the file
-            const fullPath = path.isAbsolute(filePath) 
-                ? filePath 
-                : path.join(workspaceRoot, filePath);
+    /**
+     * Enhance review results with additional context for better navigation
+     */
+    private enhanceReviewResults(result: any, detailedDiff: any[]): any {
+        // Clone the result to avoid modifying the original
+        const enhancedResult = JSON.parse(JSON.stringify(result));
+        
+        // Process each issue to add context
+        if (enhancedResult.issues && Array.isArray(enhancedResult.issues)) {
+            enhancedResult.issues.forEach((issue: any) => {
+                // Skip issues without filePath
+                if (!issue.filePath) {
+                    return;
+                }
                 
-            const document = await vscode.workspace.openTextDocument(fullPath);
-            const editor = await vscode.window.showTextDocument(document);
+                // Find file context in detailed diff
+                const fileMatches = detailedDiff.filter(d => d.filePath === issue.filePath);
+                if (!fileMatches.length) {
+                    return;
+                }
+                
+                // Find the closest matching line
+                const closestMatch = this.findClosestMatchingContext(fileMatches, issue);
+                
+                if (closestMatch) {
+                    // Add enhanced context
+                    issue.lineContext = {
+                        linesBefore: closestMatch.contextBefore,
+                        linesAfter: closestMatch.contextAfter,
+                        exactMatch: closestMatch.exactMatch,
+                        newLineNumber: closestMatch.newLineNumber,
+                        codeSnippet: this.formatCodeSnippet(closestMatch)
+                    };
+                }
+            });
+        }
+        
+        return enhancedResult;
+    }
+
+    /**
+     * Find the closest matching hunk for an issue
+     */
+    private findClosestMatchingContext(fileMatches: any[], issue: any): any | null {
+        // Skip if no line number provided
+        if (!issue.lineNumber) {
+            return null;
+        }
+        
+        let bestMatch = null;
+        let smallestDistance = Infinity;
+        
+        for (const fileMatch of fileMatches) {
+            const hunk = fileMatch.hunk;
             
-            // If line number provided, move to that line
-            if (lineNumber !== undefined && lineNumber >= 0) {
-                const position = new vscode.Position(lineNumber, 0);
-                editor.selection = new vscode.Selection(position, position);
-                editor.revealRange(
-                    new vscode.Range(position, position),
-                    vscode.TextEditorRevealType.InCenter
-                );
+            // Check if the line number is in this hunk
+            for (const line of hunk.lines) {
+                if (!line.newLineNum) continue; // Skip removed lines
+                
+                // Calculate distance to reported issue line
+                const distance = Math.abs(line.newLineNum - issue.lineNumber);
+                
+                // If this is the closest match so far
+                if (distance < smallestDistance) {
+                    smallestDistance = distance;
+                    
+                    // Get context around the matching line
+                    const lineIndex = hunk.lines.indexOf(line);
+                    const relevantLines = hunk.lines.slice(
+                        Math.max(0, lineIndex - 3), 
+                        Math.min(hunk.lines.length, lineIndex + 4)
+                    );
+                    
+                    bestMatch = {
+                        contextBefore: fileMatch.contextBefore,
+                        contextAfter: fileMatch.contextAfter,
+                        exactMatch: distance === 0,
+                        newLineNumber: line.newLineNum,
+                        oldLineNumber: line.oldLineNum,
+                        relevantLines: relevantLines,
+                        distance: distance
+                    };
+                    
+                    // If exact match found, we can stop searching
+                    if (distance === 0) break;
+                }
             }
+            
+            // If exact match found, we can stop searching
+            if (bestMatch && bestMatch.exactMatch) break;
+        }
+        
+        return bestMatch;
+    }
+
+    /**
+     * Format a code snippet for display
+     */
+    private formatCodeSnippet(match: any): string {
+        if (!match || !match.relevantLines) {
+            return '';
+        }
+        
+        return match.relevantLines.map((line: any) => {
+            const prefix = line.type === 'added' ? '+ ' : line.type === 'removed' ? '- ' : '  ';
+            return prefix + line.content;
+        }).join('\n');
+    }
+
+    private async navigateToFile(filePath: string, lineNumber: number, codeContext?: string) {
+        try {
+          // Get the workspace root
+          const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
+          if (!workspaceRoot) {
+            throw new Error('No workspace folder open');
+          }
+
+          // Construct full path and open the file
+          const fullPath = path.isAbsolute(filePath) ? filePath : path.join(workspaceRoot, filePath);
+
+          const document = await vscode.workspace.openTextDocument(fullPath);
+          const editor = await vscode.window.showTextDocument(document);
+
+          // If code context is provided, try to find it first
+          if (codeContext && codeContext.trim()) {
+            const text = document.getText();
+            const contextLines = codeContext
+              .split('\n')
+              .filter((line) => !line.startsWith('+ ') && !line.startsWith('- '))
+              .map((line) => (line.startsWith('  ') ? line.substring(2) : line))
+              .filter((line) => line.trim());
+
+            // Need at least 2 context lines to perform a reliable search
+            if (contextLines.length >= 2) {
+              const searchPattern = contextLines.slice(0, 3).join('\n'); // Use first 3 lines at most
+              const searchIndex = text.indexOf(searchPattern);
+
+              if (searchIndex !== -1) {
+                // Found context, calculate position
+                const precedingText = text.substring(0, searchIndex);
+                const linesBefore = precedingText.split('\n').length - 1;
+
+                const position = new vscode.Position(linesBefore, 0);
+                editor.selection = new vscode.Selection(position, position);
+                editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+                return;
+              }
+            }
+          }
+
+          // Fallback to line number if context search failed
+          if (lineNumber !== undefined && lineNumber >= 0) {
+            const position = new vscode.Position(lineNumber - 1, 0);
+            editor.selection = new vscode.Selection(position, position);
+            editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+          }
         } catch (error) {
             console.error('Navigation failed:', error);
             throw error;
