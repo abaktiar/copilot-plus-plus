@@ -21,17 +21,26 @@ export function registerCommitMessageCommand(context: vscode.ExtensionContext) {
           throw new Error('No Git repository found');
         }
 
-        repo.inputBox.value = 'Generating commit message...';
+        let animationFrame = 0;
+        const animationInterval = setInterval(() => {
+          const dots = '.'.repeat(animationFrame % 4);
+          repo.inputBox.value = `Working on it${dots}`;
+          animationFrame++;
+        }, 300);
 
-        // Generate commit message using the copilot service (which now shows progress)
-        const message = await copilotService.generateCommitMessage(context);
+        try {
+          // Generate commit message using the copilot service
+          const message = await copilotService.generateCommitMessage(context);
 
-        if (message) {
-          //   const repo = await gitService.getGitRepo();
-          //   if (repo) {
-          repo.inputBox.value = message;
-          vscode.window.showInformationMessage('Commit message generated and applied!');
-          //   }
+          clearInterval(animationInterval);
+
+          if (message) {
+            repo.inputBox.value = message;
+            vscode.window.showInformationMessage('Commit message generated and applied!');
+          }
+        } catch (error) {
+          clearInterval(animationInterval);
+          throw error;
         }
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
