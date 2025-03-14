@@ -12,7 +12,7 @@ A VS Code extension that enhances GitHub Copilot capabilities with AI-powered de
   - Support for multiple commit styles (conventional, gitmoji)
   - Automatic ticket number detection from branch names
 
-![Commit Message Generation](images/commit-message.gif)
+![Commit Message Generation](images/commit-message-generation.gif)
 
 - **PR Description Generation**: Automatically generate comprehensive PR descriptions based on your changes
   - Select source and target branches to analyze differences
