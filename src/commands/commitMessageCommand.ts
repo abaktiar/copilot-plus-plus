@@ -16,6 +16,25 @@ export function registerCommitMessageCommand(context: vscode.ExtensionContext) {
         // Get commit context from git service
         const context = await gitService.getCommitContext(workspaceRoot);
 
+        // Check if there are any staged files before proceeding
+        if (!context.files || context.files.length === 0) {
+          const stageFilesAction = 'How to stage files';
+          const result = await vscode.window.showInformationMessage(
+            'No staged files found. You need to stage your changes before generating a commit message.',
+            stageFilesAction
+          );
+
+          // If user clicks on the action, show help about staging
+          if (result === stageFilesAction) {
+            vscode.env.openExternal(
+              vscode.Uri.parse(
+                'https://git-scm.com/book/en/v2/Git-Basics-Recording-Changes-to-the-Repository#_staging_modified_files'
+              )
+            );
+          }
+          return;
+        }
+
         let repo = await gitService.getGitRepo();
         if (!repo) {
           throw new Error('No Git repository found');
