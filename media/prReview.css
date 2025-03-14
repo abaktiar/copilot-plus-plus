@@ -152,6 +152,14 @@ button:disabled {
   padding-bottom: 0;
 }
 
+/* .key-strengths li {
+  color: var(--vscode-testing-iconPassed);
+} */
+
+.critical-issues li {
+  color: var(--vscode-errorForeground);
+}
+
 .issues-container {
   display: grid;
   gap: 24px;
