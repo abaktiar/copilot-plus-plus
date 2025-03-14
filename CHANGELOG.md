@@ -2,7 +2,7 @@
 All notable changes to the "copilot-plus-plus" extension will be documented in this file.
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
-## [0.0.5] - 2024-10-25
+## [0.0.8] - 2025-03-14
 ### Added
 - PR Review Assistance feature
   - Analyze code changes between branches for potential issues
@@ -20,7 +20,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ### Fixed
 - Minor bug fixes and performance improvements
 
-## [0.0.3] - 2024-09-15
+## [0.0.3] - 2025-03-14
 ### Added
 - PR Description Generation feature
 - Improved configuration options
@@ -28,7 +28,7 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ### Fixed
 - Minor bugs
 
-## [0.0.1] - 2024-08-01
+## [0.0.1] - 2025-03-13
 ### Added
 - Initial release
 - Commit message generation using GitHub's Language Model
