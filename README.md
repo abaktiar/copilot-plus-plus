@@ -21,12 +21,16 @@ A VS Code extension that enhances GitHub Copilot capabilities with AI-powered de
   - Easy copy-to-clipboard functionality for GitHub/GitLab/Azure DevOps
   - Customizable description styles and detail level
 
+![PR Description Generation](images/pr-description-generation.gif)
+
 - **PR Review Assistance**: Get AI-powered review comments and suggestions for your PRs
   - Analyze code changes between branches for potential issues
   - Identify security vulnerabilities, code style issues, and performance concerns
   - Detect potential breaking changes in APIs or interfaces
   - Navigate directly to problem areas in code with clickable file links
   - View issue severity and recommendations for fixes
+
+![PR Review Assistance](images/pr-review-assistance.gif)
 
 ### Coming Soon
 - **Code Usage Analysis**: Identify where and how specific code is used throughout your project
