@@ -92,7 +92,7 @@
       ]
     },
     "configuration": {
-      "title": "Copilot Plus Plus",
+      "title": "Copilot++",
       "properties": {
         "copilotPlusPlus.languageModel": {
           "type": "string",
