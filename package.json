@@ -2,7 +2,7 @@
   "name": "copilot-plus-plus",
   "displayName": "Copilot++",
   "description": "Enhances GitHub Copilot capabilities with AI-powered development workflows.",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "publisher": "albaktiar",
   "engines": {
     "vscode": "^1.98.0"
