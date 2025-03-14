@@ -233,7 +233,11 @@ Files Changed:
 ${filesFormatted}
 
 Changes (git diff - truncated if large):
-${context.diff.length > 10000 ? context.diff.substring(0, 10000) + '\n... (diff truncated)' : context.diff}
+${
+  context.diff.length > MAX_CONTEXT_LENGTH
+    ? context.diff.substring(0, MAX_CONTEXT_LENGTH) + '\n... (diff truncated)'
+    : context.diff
+}
 `;
 
     // Determine PR description style instruction based on config
@@ -278,46 +282,25 @@ ${context.diff.length > 10000 ? context.diff.substring(0, 10000) + '\n... (diff 
     // Get configuration
     const config = ConfigService.getPrReviewConfig();
 
-    // Format commits for display
+    // Format commits for display, ensuring no undefined values
     const commitsFormatted = context.commits
-      .map(
-        (c) =>
-          `Hash: ${c.hash.substring(0, 7)}\nAuthor: ${c.author}\nDate: ${c.date}\nSubject: ${c.subject}\nBody: ${
-            c.body
-          }`
-      )
+      .filter((c) => c.hash && c.subject) // Only include commits with required info
+      .map((c) => {
+        const hash = c.hash?.substring(0, 7) || 'unknown';
+        const author = c.author || 'unknown';
+        const date = c.date || 'unknown';
+        const subject = c.subject || 'no subject';
+        const body = c.body || '';
+
+        return `Commit: ${hash}\nAuthor: ${author}\nDate: ${date}\nSubject: ${subject}${body ? `\nBody: ${body}` : ''}`;
+      })
       .join('\n\n');
 
     // Format files if available
     const filesFormatted =
       context.files && context.files.length > 0
         ? context.files.map((f) => `${f.status} ${f.file}`).join('\n')
-        : 'File list not available';
-
-    // Add detailed diff information if available
-    let detailedDiffFormatted = '';
-    if (context.detailedDiff && context.detailedDiff.length > 0) {
-      detailedDiffFormatted = '\n\nDetailed changes with precise line information:\n\n';
-
-      context.detailedDiff.forEach((diff) => {
-        detailedDiffFormatted += `File: ${diff.filePath}\n`;
-        detailedDiffFormatted += `Hunk: @@ -${diff.hunk.oldStart},... +${diff.hunk.newStart},... @@\n`;
-
-        // Add some of the actual lines with their type and line numbers
-        diff.hunk.lines.slice(0, 10).forEach((line: DetailedDiffLine) => {
-          const prefix = line.type === 'added' ? '+' : line.type === 'removed' ? '-' : ' ';
-          const oldLineInfo = line.oldLineNum ? `old:${line.oldLineNum}` : '     ';
-          const newLineInfo = line.newLineNum ? `new:${line.newLineNum}` : '     ';
-          detailedDiffFormatted += `[${oldLineInfo} ${newLineInfo}] ${prefix}${line.content}\n`;
-        });
-
-        if (diff.hunk.lines.length > 10) {
-          detailedDiffFormatted += `... and ${diff.hunk.lines.length - 10} more lines\n`;
-        }
-
-        detailedDiffFormatted += '\n';
-      });
-    }
+        : 'No file list available';
 
     // Build the context message
     const contextMessage = `
@@ -325,16 +308,17 @@ Pull Request Review Context:
 Source Branch: ${context.sourceBranch}
 Target Branch: ${context.targetBranch}
 
-Commits (${context.commits.length}):
-${commitsFormatted || 'No commits found between branches'}
-
 Files Changed:
 ${filesFormatted}
 
-Changes (git diff - truncated if large):
-${context.diff.length > 10000 ? context.diff.substring(0, 10000) + '\n... (diff truncated)' : context.diff}
-${detailedDiffFormatted}
-`;
+Commits (${context.commits.length}):
+${commitsFormatted || 'No commits found between branches'}
+
+Diff Context and Line Information:
+${context.detailedDiff ? this.formatDetailedDiff(context.detailedDiff) : 'No detailed diff available'}
+
+Full Changes (git diff):
+${context.diff || 'No diff available'}`;
 
     // Add review instruction components based on config
     const securityInstruction = config.includeSecurity ? this.PR_REVIEW_SECURITY : '';
@@ -360,6 +344,35 @@ ${detailedDiffFormatted}
       vscode.LanguageModelChatMessage.User(contextMessage),
       vscode.LanguageModelChatMessage.User(reviewInstruction),
     ];
+  }
+
+  /**
+   * Format detailed diff information into a readable format
+   */
+  private static formatDetailedDiff(detailedDiff: any[]): string {
+    if (!detailedDiff || detailedDiff.length === 0) {
+      return 'No detailed diff information available';
+    }
+
+    let formattedDiff = '';
+
+    detailedDiff.forEach((diff) => {
+      formattedDiff += `\nFile: ${diff.filePath}\n`;
+      if (diff.hunk) {
+        formattedDiff += `Hunk: @@ -${diff.hunk.oldStart},${diff.hunk.oldLines} +${diff.hunk.newStart},${diff.hunk.newLines} @@\n`;
+
+        // Add line information with clear mapping
+        diff.hunk.lines.forEach((line: DetailedDiffLine) => {
+          const prefix = line.type === 'added' ? '+' : line.type === 'removed' ? '-' : ' ';
+          const oldLineInfo = line.oldLineNum ? `old:${line.oldLineNum.toString().padStart(4)}` : '    -   ';
+          const newLineInfo = line.newLineNum ? `new:${line.newLineNum.toString().padStart(4)}` : '    -   ';
+          formattedDiff += `[${oldLineInfo} ${newLineInfo}] ${prefix}${line.content}\n`;
+        });
+      }
+      formattedDiff += '\n';
+    });
+
+    return formattedDiff;
   }
 
   /**
