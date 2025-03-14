@@ -1,7 +1,7 @@
 {
   "name": "copilot-plus-plus",
   "displayName": "Copilot++",
-  "description": "Enhances GitHub Copilot with AI-powered commit message generation",
+  "description": "Enhances GitHub Copilot capabilities with AI-powered development workflows.",
   "version": "0.0.7",
   "publisher": "albaktiar",
   "engines": {
