@@ -194,7 +194,18 @@
             setBranches(message.branches);
             setCurrentBranch(message.currentBranch);
             setSourceBranch(message.currentBranch);
-            setTargetBranch(message.branches.find((b) => b === 'main' || b === 'master') || message.branches[0]);
+
+            // First check for defaultTargetBranch from config
+            if (message.defaultTargetBranch && message.branches.includes(message.defaultTargetBranch)) {
+              setTargetBranch(message.defaultTargetBranch);
+            } else {
+              // Fall back to main/master if available, or first branch that's not the source
+              setTargetBranch(
+                message.branches.find((b) => b === 'main' || b === 'master') ||
+                  message.branches.find((b) => b !== message.currentBranch) ||
+                  message.branches[0]
+              );
+            }
             break;
 
           case 'startLoading':

@@ -113,6 +113,11 @@
           "default": "gpt-4o",
           "description": "The language model to use for generating commit messages"
         },
+        "copilotPlusPlus.defaultTargetBranch": {
+          "type": "string",
+          "default": "",
+          "description": "The default target branch to select for PR description and review. If not set or if the branch doesn't exist, will try to use 'main' or 'master'."
+        },
         "copilotPlusPlus.commitStyle": {
           "type": "string",
           "enum": [

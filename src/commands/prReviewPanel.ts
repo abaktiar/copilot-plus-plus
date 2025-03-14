@@ -4,316 +4,313 @@ import { GitService } from '../services/gitService';
 import { CopilotService } from '../services/copilotService';
 
 export class PrReviewPanel {
-    public static currentPanel: PrReviewPanel | undefined;
-    private readonly _panel: vscode.WebviewPanel;
-    private readonly _extensionUri: vscode.Uri;
-    private _disposables: vscode.Disposable[] = [];
-    private readonly _gitService: GitService;
-    private readonly _copilotService: CopilotService;
+  public static currentPanel: PrReviewPanel | undefined;
+  private readonly _panel: vscode.WebviewPanel;
+  private readonly _extensionUri: vscode.Uri;
+  private _disposables: vscode.Disposable[] = [];
+  private readonly _gitService: GitService;
+  private readonly _copilotService: CopilotService;
 
-    public static createOrShow(extensionUri: vscode.Uri) {
-        const column = vscode.window.activeTextEditor
-            ? vscode.window.activeTextEditor.viewColumn
-            : undefined;
+  public static createOrShow(extensionUri: vscode.Uri) {
+    const column = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
 
-        // If we already have a panel, show it
-        if (PrReviewPanel.currentPanel) {
-            PrReviewPanel.currentPanel._panel.reveal(column);
-            return;
+    // If we already have a panel, show it
+    if (PrReviewPanel.currentPanel) {
+      PrReviewPanel.currentPanel._panel.reveal(column);
+      return;
+    }
+
+    // Otherwise, create a new panel
+    const panel = vscode.window.createWebviewPanel(
+      'prReviewAssistant',
+      'PR Review Assistant',
+      column || vscode.ViewColumn.One,
+      {
+        enableScripts: true,
+        localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')],
+        retainContextWhenHidden: true,
+      }
+    );
+
+    PrReviewPanel.currentPanel = new PrReviewPanel(panel, extensionUri);
+  }
+
+  private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
+    this._panel = panel;
+    this._extensionUri = extensionUri;
+    this._gitService = new GitService();
+    this._copilotService = new CopilotService();
+
+    // Set the webview's initial html content
+    this._update();
+
+    // Listen for when the panel is disposed
+    this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+
+    // Handle messages from the webview
+    this._panel.webview.onDidReceiveMessage(
+      async (message) => {
+        switch (message.command) {
+          case 'getBranches':
+            const branches = await this._gitService.getAvailableBranches();
+            const currentBranch = await this._gitService.getCurrentBranch();
+            const defaultTargetBranch = this._gitService.getDefaultTargetBranch();
+
+            this._panel.webview.postMessage({
+              command: 'branchesList',
+              branches,
+              currentBranch,
+              defaultTargetBranch,
+            });
+            break;
+
+          case 'reviewPr':
+            try {
+              await this.reviewPr(message.sourceBranch, message.targetBranch);
+            } catch (error) {
+              this._panel.webview.postMessage({
+                command: 'error',
+                message: error instanceof Error ? error.message : String(error),
+              });
+            }
+            break;
+
+          case 'navigateToFile':
+            try {
+              await this.navigateToFile(message.filePath, message.lineNumber, message.codeContext);
+            } catch (error) {
+              vscode.window.showErrorMessage('Failed to navigate to file');
+            }
+            break;
+        }
+      },
+      null,
+      this._disposables
+    );
+  }
+
+  private async reviewPr(sourceBranch: string, targetBranch: string) {
+    try {
+      this._panel.webview.postMessage({ command: 'startLoading' });
+
+      // Get diff data with enhanced line information
+      const [commits, diff, files, detailedDiff] = await Promise.all([
+        this._gitService.getCommitsBetweenBranches(sourceBranch, targetBranch),
+        this._gitService.getDiffBetweenBranches(sourceBranch, targetBranch),
+        this._gitService.getFilesBetweenBranches(sourceBranch, targetBranch),
+        this._gitService.getDetailedDiffBetweenBranches(sourceBranch, targetBranch),
+      ]);
+
+      if (!commits.length && !files.length) {
+        throw new Error('No changes detected between the selected branches');
+      }
+
+      const prContext = {
+        sourceBranch,
+        targetBranch,
+        commits,
+        diff,
+        files,
+        detailedDiff,
+      };
+
+      const result = await this._copilotService.reviewPrChanges(prContext);
+
+      // Process review results to enhance navigation
+      const enhancedResult = this.enhanceReviewResults(result, detailedDiff);
+
+      this._panel.webview.postMessage({
+        command: 'reviewComplete',
+        result: enhancedResult,
+      });
+    } catch (error) {
+      console.error('PR review failed:', error);
+      this._panel.webview.postMessage({
+        command: 'error',
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  /**
+   * Enhance review results with additional context for better navigation
+   */
+  private enhanceReviewResults(result: any, detailedDiff: any[]): any {
+    // Clone the result to avoid modifying the original
+    const enhancedResult = JSON.parse(JSON.stringify(result));
+
+    // Process each issue to add context
+    if (enhancedResult.issues && Array.isArray(enhancedResult.issues)) {
+      enhancedResult.issues.forEach((issue: any) => {
+        // Skip issues without filePath
+        if (!issue.filePath) {
+          return;
         }
 
-        // Otherwise, create a new panel
-        const panel = vscode.window.createWebviewPanel(
-            'prReviewAssistant',
-            'PR Review Assistant',
-            column || vscode.ViewColumn.One,
-            {
-                enableScripts: true,
-                localResourceRoots: [
-                    vscode.Uri.joinPath(extensionUri, 'media')
-                ],
-                retainContextWhenHidden: true
-            }
-        );
+        // Find file context in detailed diff
+        const fileMatches = detailedDiff.filter((d) => d.filePath === issue.filePath);
+        if (!fileMatches.length) {
+          return;
+        }
 
-        PrReviewPanel.currentPanel = new PrReviewPanel(panel, extensionUri);
+        // Find the closest matching line
+        const closestMatch = this.findClosestMatchingContext(fileMatches, issue);
+
+        if (closestMatch) {
+          // Add enhanced context
+          issue.lineContext = {
+            linesBefore: closestMatch.contextBefore,
+            linesAfter: closestMatch.contextAfter,
+            exactMatch: closestMatch.exactMatch,
+            newLineNumber: closestMatch.newLineNumber,
+            codeSnippet: this.formatCodeSnippet(closestMatch),
+          };
+        }
+      });
     }
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
-        this._panel = panel;
-        this._extensionUri = extensionUri;
-        this._gitService = new GitService();
-        this._copilotService = new CopilotService();
+    return enhancedResult;
+  }
 
-        // Set the webview's initial html content
-        this._update();
-
-        // Listen for when the panel is disposed
-        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
-
-        // Handle messages from the webview
-        this._panel.webview.onDidReceiveMessage(
-            async (message) => {
-                switch (message.command) {
-                    case 'getBranches':
-                        const branches = await this._gitService.getAvailableBranches();
-                        const currentBranch = await this._gitService.getCurrentBranch();
-                        this._panel.webview.postMessage({ 
-                            command: 'branchesList', 
-                            branches,
-                            currentBranch
-                        });
-                        break;
-
-                    case 'reviewPr':
-                        try {
-                            await this.reviewPr(message.sourceBranch, message.targetBranch);
-                        } catch (error) {
-                            this._panel.webview.postMessage({ 
-                                command: 'error', 
-                                message: error instanceof Error ? error.message : String(error) 
-                            });
-                        }
-                        break;
-
-                    case 'navigateToFile':
-                        try {
-                            await this.navigateToFile(message.filePath, message.lineNumber, message.codeContext);
-                        } catch (error) {
-                            vscode.window.showErrorMessage('Failed to navigate to file');
-                        }
-                        break;
-                }
-            },
-            null,
-            this._disposables
-        );
+  /**
+   * Find the closest matching hunk for an issue
+   */
+  private findClosestMatchingContext(fileMatches: any[], issue: any): any | null {
+    // Skip if no line number provided
+    if (!issue.lineNumber) {
+      return null;
     }
 
-    private async reviewPr(sourceBranch: string, targetBranch: string) {
-        try {
-          this._panel.webview.postMessage({ command: 'startLoading' });
+    let bestMatch = null;
+    let smallestDistance = Infinity;
 
-          // Get diff data with enhanced line information
-          const [commits, diff, files, detailedDiff] = await Promise.all([
-            this._gitService.getCommitsBetweenBranches(sourceBranch, targetBranch),
-            this._gitService.getDiffBetweenBranches(sourceBranch, targetBranch),
-            this._gitService.getFilesBetweenBranches(sourceBranch, targetBranch),
-            this._gitService.getDetailedDiffBetweenBranches(sourceBranch, targetBranch),
-          ]);
+    for (const fileMatch of fileMatches) {
+      const hunk = fileMatch.hunk;
 
-          if (!commits.length && !files.length) {
-            throw new Error('No changes detected between the selected branches');
-          }
+      // Check if the line number is in this hunk
+      for (const line of hunk.lines) {
+        if (!line.newLineNum) continue; // Skip removed lines
 
-          const prContext = {
-            sourceBranch,
-            targetBranch,
-            commits,
-            diff,
-            files,
-            detailedDiff,
+        // Calculate distance to reported issue line
+        const distance = Math.abs(line.newLineNum - issue.lineNumber);
+
+        // If this is the closest match so far
+        if (distance < smallestDistance) {
+          smallestDistance = distance;
+
+          // Get context around the matching line
+          const lineIndex = hunk.lines.indexOf(line);
+          const relevantLines = hunk.lines.slice(
+            Math.max(0, lineIndex - 3),
+            Math.min(hunk.lines.length, lineIndex + 4)
+          );
+
+          bestMatch = {
+            contextBefore: fileMatch.contextBefore,
+            contextAfter: fileMatch.contextAfter,
+            exactMatch: distance === 0,
+            newLineNumber: line.newLineNum,
+            oldLineNumber: line.oldLineNum,
+            relevantLines: relevantLines,
+            distance: distance,
           };
 
-          const result = await this._copilotService.reviewPrChanges(prContext);
-
-          // Process review results to enhance navigation
-          const enhancedResult = this.enhanceReviewResults(result, detailedDiff);
-
-          this._panel.webview.postMessage({
-            command: 'reviewComplete',
-            result: enhancedResult,
-          });
-        } catch (error) {
-            console.error('PR review failed:', error);
-            this._panel.webview.postMessage({ 
-                command: 'error', 
-                message: error instanceof Error ? error.message : String(error) 
-            });
+          // If exact match found, we can stop searching
+          if (distance === 0) break;
         }
+      }
+
+      // If exact match found, we can stop searching
+      if (bestMatch && bestMatch.exactMatch) break;
     }
 
-    /**
-     * Enhance review results with additional context for better navigation
-     */
-    private enhanceReviewResults(result: any, detailedDiff: any[]): any {
-        // Clone the result to avoid modifying the original
-        const enhancedResult = JSON.parse(JSON.stringify(result));
-        
-        // Process each issue to add context
-        if (enhancedResult.issues && Array.isArray(enhancedResult.issues)) {
-            enhancedResult.issues.forEach((issue: any) => {
-                // Skip issues without filePath
-                if (!issue.filePath) {
-                    return;
-                }
-                
-                // Find file context in detailed diff
-                const fileMatches = detailedDiff.filter(d => d.filePath === issue.filePath);
-                if (!fileMatches.length) {
-                    return;
-                }
-                
-                // Find the closest matching line
-                const closestMatch = this.findClosestMatchingContext(fileMatches, issue);
-                
-                if (closestMatch) {
-                    // Add enhanced context
-                    issue.lineContext = {
-                        linesBefore: closestMatch.contextBefore,
-                        linesAfter: closestMatch.contextAfter,
-                        exactMatch: closestMatch.exactMatch,
-                        newLineNumber: closestMatch.newLineNumber,
-                        codeSnippet: this.formatCodeSnippet(closestMatch)
-                    };
-                }
-            });
-        }
-        
-        return enhancedResult;
+    return bestMatch;
+  }
+
+  /**
+   * Format a code snippet for display
+   */
+  private formatCodeSnippet(match: any): string {
+    if (!match || !match.relevantLines) {
+      return '';
     }
 
-    /**
-     * Find the closest matching hunk for an issue
-     */
-    private findClosestMatchingContext(fileMatches: any[], issue: any): any | null {
-        // Skip if no line number provided
-        if (!issue.lineNumber) {
-            return null;
-        }
-        
-        let bestMatch = null;
-        let smallestDistance = Infinity;
-        
-        for (const fileMatch of fileMatches) {
-            const hunk = fileMatch.hunk;
-            
-            // Check if the line number is in this hunk
-            for (const line of hunk.lines) {
-                if (!line.newLineNum) continue; // Skip removed lines
-                
-                // Calculate distance to reported issue line
-                const distance = Math.abs(line.newLineNum - issue.lineNumber);
-                
-                // If this is the closest match so far
-                if (distance < smallestDistance) {
-                    smallestDistance = distance;
-                    
-                    // Get context around the matching line
-                    const lineIndex = hunk.lines.indexOf(line);
-                    const relevantLines = hunk.lines.slice(
-                        Math.max(0, lineIndex - 3), 
-                        Math.min(hunk.lines.length, lineIndex + 4)
-                    );
-                    
-                    bestMatch = {
-                        contextBefore: fileMatch.contextBefore,
-                        contextAfter: fileMatch.contextAfter,
-                        exactMatch: distance === 0,
-                        newLineNumber: line.newLineNum,
-                        oldLineNumber: line.oldLineNum,
-                        relevantLines: relevantLines,
-                        distance: distance
-                    };
-                    
-                    // If exact match found, we can stop searching
-                    if (distance === 0) break;
-                }
-            }
-            
-            // If exact match found, we can stop searching
-            if (bestMatch && bestMatch.exactMatch) break;
-        }
-        
-        return bestMatch;
-    }
+    return match.relevantLines
+      .map((line: any) => {
+        const prefix = line.type === 'added' ? '+ ' : line.type === 'removed' ? '- ' : '  ';
+        return prefix + line.content;
+      })
+      .join('\n');
+  }
 
-    /**
-     * Format a code snippet for display
-     */
-    private formatCodeSnippet(match: any): string {
-        if (!match || !match.relevantLines) {
-            return '';
-        }
-        
-        return match.relevantLines.map((line: any) => {
-            const prefix = line.type === 'added' ? '+ ' : line.type === 'removed' ? '- ' : '  ';
-            return prefix + line.content;
-        }).join('\n');
-    }
+  private async navigateToFile(filePath: string, lineNumber: number, codeContext?: string) {
+    try {
+      // Get the workspace root
+      const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
+      if (!workspaceRoot) {
+        throw new Error('No workspace folder open');
+      }
 
-    private async navigateToFile(filePath: string, lineNumber: number, codeContext?: string) {
-        try {
-          // Get the workspace root
-          const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
-          if (!workspaceRoot) {
-            throw new Error('No workspace folder open');
-          }
+      // Construct full path and open the file
+      const fullPath = path.isAbsolute(filePath) ? filePath : path.join(workspaceRoot, filePath);
 
-          // Construct full path and open the file
-          const fullPath = path.isAbsolute(filePath) ? filePath : path.join(workspaceRoot, filePath);
+      const document = await vscode.workspace.openTextDocument(fullPath);
+      const editor = await vscode.window.showTextDocument(document);
 
-          const document = await vscode.workspace.openTextDocument(fullPath);
-          const editor = await vscode.window.showTextDocument(document);
+      // If code context is provided, try to find it first
+      if (codeContext && codeContext.trim()) {
+        const text = document.getText();
+        const contextLines = codeContext
+          .split('\n')
+          .filter((line) => !line.startsWith('+ ') && !line.startsWith('- '))
+          .map((line) => (line.startsWith('  ') ? line.substring(2) : line))
+          .filter((line) => line.trim());
 
-          // If code context is provided, try to find it first
-          if (codeContext && codeContext.trim()) {
-            const text = document.getText();
-            const contextLines = codeContext
-              .split('\n')
-              .filter((line) => !line.startsWith('+ ') && !line.startsWith('- '))
-              .map((line) => (line.startsWith('  ') ? line.substring(2) : line))
-              .filter((line) => line.trim());
+        // Need at least 2 context lines to perform a reliable search
+        if (contextLines.length >= 2) {
+          const searchPattern = contextLines.slice(0, 3).join('\n'); // Use first 3 lines at most
+          const searchIndex = text.indexOf(searchPattern);
 
-            // Need at least 2 context lines to perform a reliable search
-            if (contextLines.length >= 2) {
-              const searchPattern = contextLines.slice(0, 3).join('\n'); // Use first 3 lines at most
-              const searchIndex = text.indexOf(searchPattern);
+          if (searchIndex !== -1) {
+            // Found context, calculate position
+            const precedingText = text.substring(0, searchIndex);
+            const linesBefore = precedingText.split('\n').length - 1;
 
-              if (searchIndex !== -1) {
-                // Found context, calculate position
-                const precedingText = text.substring(0, searchIndex);
-                const linesBefore = precedingText.split('\n').length - 1;
-
-                const position = new vscode.Position(linesBefore, 0);
-                editor.selection = new vscode.Selection(position, position);
-                editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
-                return;
-              }
-            }
-          }
-
-          // Fallback to line number if context search failed
-          if (lineNumber !== undefined && lineNumber >= 0) {
-            const position = new vscode.Position(lineNumber - 1, 0);
+            const position = new vscode.Position(linesBefore, 0);
             editor.selection = new vscode.Selection(position, position);
             editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+            return;
           }
-        } catch (error) {
-            console.error('Navigation failed:', error);
-            throw error;
         }
+      }
+
+      // Fallback to line number if context search failed
+      if (lineNumber !== undefined && lineNumber >= 0) {
+        const position = new vscode.Position(lineNumber - 1, 0);
+        editor.selection = new vscode.Selection(position, position);
+        editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+      }
+    } catch (error) {
+      console.error('Navigation failed:', error);
+      throw error;
     }
+  }
 
-    private _update() {
-        const webview = this._panel.webview;
-        this._panel.webview.html = this._getHtmlForWebview(webview);
-    }
+  private _update() {
+    const webview = this._panel.webview;
+    this._panel.webview.html = this._getHtmlForWebview(webview);
+  }
 
-    private _getHtmlForWebview(webview: vscode.Webview) {
-        // Get the local path to scripts and css
-        const scriptUri = webview.asWebviewUri(
-            vscode.Uri.joinPath(this._extensionUri, 'media', 'prReview.js')
-        );
-        
-        const styleUri = webview.asWebviewUri(
-            vscode.Uri.joinPath(this._extensionUri, 'media', 'prReview.css')
-        );
+  private _getHtmlForWebview(webview: vscode.Webview) {
+    // Get the local path to scripts and css
+    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'prReview.js'));
 
-        // Use a nonce to only allow specific scripts to be run
-        const nonce = getNonce();
+    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'prReview.css'));
 
-        return `<!DOCTYPE html>
+    // Use a nonce to only allow specific scripts to be run
+    const nonce = getNonce();
+
+    return `<!DOCTYPE html>
             <html lang="en">
             <head>
                 <meta charset="UTF-8">
@@ -331,19 +328,19 @@ export class PrReviewPanel {
                 <script nonce="${nonce}" src="${scriptUri}"></script>
             </body>
             </html>`;
-    }
+  }
 
-    public dispose() {
-        PrReviewPanel.currentPanel = undefined;
-        // Clean up our resources
-        this._panel.dispose();
-        while (this._disposables.length) {
-            const x = this._disposables.pop();
-            if (x) {
-                x.dispose();
-            }
-        }
+  public dispose() {
+    PrReviewPanel.currentPanel = undefined;
+    // Clean up our resources
+    this._panel.dispose();
+    while (this._disposables.length) {
+      const x = this._disposables.pop();
+      if (x) {
+        x.dispose();
+      }
     }
+  }
 }
 
 function getNonce() {

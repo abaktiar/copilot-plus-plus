@@ -2,150 +2,146 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { GitService } from '../services/gitService';
 import { CopilotService } from '../services/copilotService';
+import { ConfigService } from '../services/configService';
 
 export class PrDescriptionPanel {
-    public static currentPanel: PrDescriptionPanel | undefined;
-    private readonly _panel: vscode.WebviewPanel;
-    private readonly _extensionUri: vscode.Uri;
-    private _disposables: vscode.Disposable[] = [];
-    private readonly _gitService: GitService;
-    private readonly _copilotService: CopilotService;
+  public static currentPanel: PrDescriptionPanel | undefined;
+  private readonly _panel: vscode.WebviewPanel;
+  private readonly _extensionUri: vscode.Uri;
+  private _disposables: vscode.Disposable[] = [];
+  private readonly _gitService: GitService;
+  private readonly _copilotService: CopilotService;
 
-    public static createOrShow(extensionUri: vscode.Uri) {
-        const column = vscode.window.activeTextEditor
-            ? vscode.window.activeTextEditor.viewColumn
-            : undefined;
+  public static createOrShow(extensionUri: vscode.Uri) {
+    const column = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
 
-        // If we already have a panel, show it
-        if (PrDescriptionPanel.currentPanel) {
-            PrDescriptionPanel.currentPanel._panel.reveal(column);
-            return;
-        }
-
-        // Otherwise, create a new panel
-        const panel = vscode.window.createWebviewPanel(
-            'prDescriptionGenerator',
-            'PR Description Generator',
-            column || vscode.ViewColumn.One,
-            {
-                enableScripts: true,
-                localResourceRoots: [
-                    vscode.Uri.joinPath(extensionUri, 'media')
-                ],
-                retainContextWhenHidden: true
-            }
-        );
-
-        PrDescriptionPanel.currentPanel = new PrDescriptionPanel(panel, extensionUri);
+    // If we already have a panel, show it
+    if (PrDescriptionPanel.currentPanel) {
+      PrDescriptionPanel.currentPanel._panel.reveal(column);
+      return;
     }
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
-        this._panel = panel;
-        this._extensionUri = extensionUri;
-        this._gitService = new GitService();
-        this._copilotService = new CopilotService();
+    // Otherwise, create a new panel
+    const panel = vscode.window.createWebviewPanel(
+      'prDescriptionGenerator',
+      'PR Description Generator',
+      column || vscode.ViewColumn.One,
+      {
+        enableScripts: true,
+        localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')],
+        retainContextWhenHidden: true,
+      }
+    );
 
-        // Set the webview's initial html content
-        this._update();
+    PrDescriptionPanel.currentPanel = new PrDescriptionPanel(panel, extensionUri);
+  }
 
-        // Listen for when the panel is disposed
-        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+  private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
+    this._panel = panel;
+    this._extensionUri = extensionUri;
+    this._gitService = new GitService();
+    this._copilotService = new CopilotService();
 
-        // Handle messages from the webview
-        this._panel.webview.onDidReceiveMessage(
-            async (message) => {
-                switch (message.command) {
-                    case 'getBranches':
-                        const branches = await this._gitService.getAvailableBranches();
-                        const currentBranch = await this._gitService.getCurrentBranch();
-                        this._panel.webview.postMessage({ 
-                            command: 'branchesList', 
-                            branches,
-                            currentBranch
-                        });
-                        break;
+    // Set the webview's initial html content
+    this._update();
 
-                    case 'generatePrDescription':
-                        try {
-                            await this.generatePrDescription(message.sourceBranch, message.targetBranch);
-                        } catch (error) {
-                            this._panel.webview.postMessage({ 
-                                command: 'error', 
-                                message: error instanceof Error ? error.message : String(error) 
-                            });
-                        }
-                        break;
+    // Listen for when the panel is disposed
+    this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
-                    case 'copyToClipboard':
-                        try {
-                            await vscode.env.clipboard.writeText(message.text);
-                            vscode.window.showInformationMessage('Copied to clipboard!');
-                        } catch (error) {
-                            vscode.window.showErrorMessage('Failed to copy to clipboard');
-                        }
-                        break;
-                }
-            },
-            null,
-            this._disposables
-        );
-    }
+    // Handle messages from the webview
+    this._panel.webview.onDidReceiveMessage(
+      async (message) => {
+        switch (message.command) {
+          case 'getBranches':
+            const branches = await this._gitService.getAvailableBranches();
+            const currentBranch = await this._gitService.getCurrentBranch();
+            const defaultTargetBranch = this._gitService.getDefaultTargetBranch();
 
-    private async generatePrDescription(sourceBranch: string, targetBranch: string) {
-        try {
-            this._panel.webview.postMessage({ command: 'startLoading' });
-
-            const [commits, diff, files] = await Promise.all([
-                this._gitService.getCommitsBetweenBranches(sourceBranch, targetBranch),
-                this._gitService.getDiffBetweenBranches(sourceBranch, targetBranch),
-                this._gitService.getFilesBetweenBranches(sourceBranch, targetBranch)
-            ]);
-
-            if (!commits.length && !files.length) {
-                throw new Error('No changes detected between the selected branches');
-            }
-
-            const prContext = {
-                sourceBranch,
-                targetBranch,
-                commits,
-                diff,
-                files
-            };
-
-            const result = await this._copilotService.generatePrDescription(prContext);
-            this._panel.webview.postMessage({ 
-                command: 'generationComplete',
-                result 
+            
+            this._panel.webview.postMessage({
+              command: 'branchesList',
+              branches,
+              currentBranch,
+              defaultTargetBranch,
             });
+            break;
 
-        } catch (error) {
-            console.error('PR description generation failed:', error);
-            this._panel.webview.postMessage({ 
-                command: 'error', 
-                message: error instanceof Error ? error.message : String(error) 
-            });
+          case 'generatePrDescription':
+            try {
+              await this.generatePrDescription(message.sourceBranch, message.targetBranch);
+            } catch (error) {
+              this._panel.webview.postMessage({
+                command: 'error',
+                message: error instanceof Error ? error.message : String(error),
+              });
+            }
+            break;
+
+          case 'copyToClipboard':
+            try {
+              await vscode.env.clipboard.writeText(message.text);
+              vscode.window.showInformationMessage('Copied to clipboard!');
+            } catch (error) {
+              vscode.window.showErrorMessage('Failed to copy to clipboard');
+            }
+            break;
         }
+      },
+      null,
+      this._disposables
+    );
+  }
+
+  private async generatePrDescription(sourceBranch: string, targetBranch: string) {
+    try {
+      this._panel.webview.postMessage({ command: 'startLoading' });
+
+      const [commits, diff, files] = await Promise.all([
+        this._gitService.getCommitsBetweenBranches(sourceBranch, targetBranch),
+        this._gitService.getDiffBetweenBranches(sourceBranch, targetBranch),
+        this._gitService.getFilesBetweenBranches(sourceBranch, targetBranch),
+      ]);
+
+      if (!commits.length && !files.length) {
+        throw new Error('No changes detected between the selected branches');
+      }
+
+      const prContext = {
+        sourceBranch,
+        targetBranch,
+        commits,
+        diff,
+        files,
+      };
+
+      const result = await this._copilotService.generatePrDescription(prContext);
+      this._panel.webview.postMessage({
+        command: 'generationComplete',
+        result,
+      });
+    } catch (error) {
+      console.error('PR description generation failed:', error);
+      this._panel.webview.postMessage({
+        command: 'error',
+        message: error instanceof Error ? error.message : String(error),
+      });
     }
+  }
 
-    private _update() {
-        const webview = this._panel.webview;
-        this._panel.webview.html = this._getHtmlForWebview(webview);
-    }
+  private _update() {
+    const webview = this._panel.webview;
+    this._panel.webview.html = this._getHtmlForWebview(webview);
+  }
 
-    private _getHtmlForWebview(webview: vscode.Webview) {
-        // Get the local path to scripts and css
-        const scriptUri = webview.asWebviewUri(
-            vscode.Uri.joinPath(this._extensionUri, 'media', 'prDescription.js')
-        );
-        const styleUri = webview.asWebviewUri(
-            vscode.Uri.joinPath(this._extensionUri, 'media', 'prDescription.css')
-        );
+  private _getHtmlForWebview(webview: vscode.Webview) {
+    // Get the local path to scripts and css
+    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'prDescription.js'));
+    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'prDescription.css'));
 
-        // Use a nonce to only allow specific scripts to be run
-        const nonce = getNonce();
+    // Use a nonce to only allow specific scripts to be run
+    const nonce = getNonce();
 
-        return `<!DOCTYPE html>
+    return `<!DOCTYPE html>
             <html lang="en">
             <head>
                 <meta charset="UTF-8">
@@ -162,21 +158,21 @@ export class PrDescriptionPanel {
                 <script nonce="${nonce}" src="${scriptUri}"></script>
             </body>
             </html>`;
+  }
+
+  public dispose() {
+    PrDescriptionPanel.currentPanel = undefined;
+
+    // Clean up our resources
+    this._panel.dispose();
+
+    while (this._disposables.length) {
+      const x = this._disposables.pop();
+      if (x) {
+        x.dispose();
+      }
     }
-
-    public dispose() {
-        PrDescriptionPanel.currentPanel = undefined;
-
-        // Clean up our resources
-        this._panel.dispose();
-
-        while (this._disposables.length) {
-            const x = this._disposables.pop();
-            if (x) {
-                x.dispose();
-            }
-        }
-    }
+  }
 }
 
 function getNonce() {

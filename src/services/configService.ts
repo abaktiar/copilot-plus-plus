@@ -1,16 +1,20 @@
 import * as vscode from 'vscode';
 
+export interface BaseConfig {
+  defaultTargetBranch: string;
+}
+
 export interface CommitMessageConfig {
-    languageModel: string;
-    commitStyle: string;
-    includeTicketNumber: boolean;
-    ticketPattern: string;
+  languageModel: string;
+  commitStyle: string;
+  includeTicketNumber: boolean;
+  ticketPattern: string;
 }
 
 export interface PrDescriptionConfig {
-    style: string;
-    includeTechnicalDetails: boolean;
-    groupCommitsByType: boolean;
+  style: string;
+  includeTechnicalDetails: boolean;
+  groupCommitsByType: boolean;
 }
 
 export interface PrReviewConfig {
@@ -76,6 +80,22 @@ export class ConfigService {
   public static getLanguageModelFamily(): string {
     const config = vscode.workspace.getConfiguration('copilotPlusPlus');
     return config.get<string>('languageModel') || 'copilot';
+  }
+
+  /**
+   * Retrieves the base configuration for Copilot++.
+   *
+   * This method accesses the VS Code workspace configuration to get user-defined settings for Copilot++.
+   * If certain configuration values are not set, it provides default values.
+   *
+   * @returns {BaseConfig} An object containing the base configuration values:
+   *  - defaultTargetBranch: The default branch to target for operations (defaults to empty string if not set)
+   */
+  public static getBaseConfig(): BaseConfig {
+    const config = vscode.workspace.getConfiguration('copilotPlusPlus');
+    return {
+      defaultTargetBranch: config.get<string>('defaultTargetBranch') || '',
+    };
   }
 
   /**
