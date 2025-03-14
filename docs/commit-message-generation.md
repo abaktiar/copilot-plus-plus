@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Commit Message Generation feature in Copilot Plus Plus uses AI to automatically generate contextually relevant commit messages based on your staged changes. This feature integrates directly with VS Code's built-in Git source control interface, providing a seamless experience for creating meaningful commit messages.
+The Commit Message Generation feature in Copilot++ uses AI to automatically generate contextually relevant commit messages based on your staged changes. This feature integrates directly with VS Code's built-in Git source control interface, providing a seamless experience for creating meaningful commit messages.
 
 ## How It Works
 
@@ -191,7 +191,7 @@ This will allow you to define mappings from file paths to scope names for conven
 
 ### Logs
 
-If you encounter issues, you can view the extension logs in the "Output" panel in VS Code by selecting "Copilot Plus Plus" from the dropdown menu. These logs may help diagnose any problems with the commit message generation feature.
+If you encounter issues, you can view the extension logs in the "Output" panel in VS Code by selecting "Copilot++" from the dropdown menu. These logs may help diagnose any problems with the commit message generation feature.
 
 ## Command Usage
 
