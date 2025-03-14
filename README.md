@@ -93,6 +93,7 @@ You can customize the extension's behavior through the following settings:
 - `copilotPlusPlus.prReview.includePerformance`: Analyze code for performance issues
 - `copilotPlusPlus.prReview.includeBreakingChanges`: Detect potential breaking changes
 - `copilotPlusPlus.prReview.enableInlineLinks`: Show clickable links to navigate to issue locations
+- `copilotPlusPlus.defaultTargetBranch`: Set a default target branch for PR operations (e.g., "main" or "develop")
 
 ## Development
 1. Clone the repository
