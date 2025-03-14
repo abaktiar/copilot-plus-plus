@@ -324,11 +324,9 @@ export class CopilotService {
 
           progress.report({ increment: 20, message: 'Initializing language model...' });
 
-          // Get the configured language model family
           const modelFamily = ConfigService.getLanguageModelFamily();
           this.log(`Using language model family: ${modelFamily}`);
 
-          // Select the configured Copilot model
           const [model] = await vscode.lm.selectChatModels({
             vendor: 'copilot',
             family: modelFamily,
@@ -344,19 +342,34 @@ export class CopilotService {
           const messages = PromptService.buildPrReviewPrompt(prContext);
 
           this.log('Prompt built, sending request to Copilot...');
-          progress.report({ increment: 30, message: 'Analyzing code changes...' });
+          progress.report({ increment: 20, message: 'Analyzing code changes...' });
 
           // Send the request to the language model
           const response = await model.sendRequest(messages, {}, token);
 
           // Stream and collect the response
           let responseContent = '';
-          progress.report({ increment: 20, message: 'Receiving analysis...' });
+          let progressIncrement = 30; // Remaining progress to distribute
+          let chunkCount = 0;
+          
+          this.log('Receiving streamed response...');
           for await (const fragment of response.text) {
             responseContent += fragment;
+            chunkCount++;
+            
+            // Update progress every few chunks
+            if (chunkCount % 5 === 0) {
+              const currentIncrement = Math.min(2, progressIncrement);
+              progressIncrement -= currentIncrement;
+              progress.report({ 
+                increment: currentIncrement,
+                message: 'Processing analysis...' 
+              });
+            }
           }
 
-          progress.report({ increment: 10, message: 'Processing results...' });
+          this.log('Response received, parsing results...');
+          progress.report({ increment: progressIncrement, message: 'Finalizing results...' });
 
           // Parse the JSON response
           try {
@@ -368,9 +381,12 @@ export class CopilotService {
 
             this.log('PR review completed successfully');
             this.log(`Found ${result.issues.length} issues`);
+            
+            progress.report({ increment: 10, message: 'Complete!' });
             return result;
           } catch (parseError) {
             this.logError('Error parsing PR review JSON: ' + parseError);
+            this.log('Falling back to error response format');
             return CopilotService.extendedPrReviewResponse(responseContent);
           }
         } catch (error) {
@@ -378,7 +394,6 @@ export class CopilotService {
           if (error instanceof vscode.LanguageModelError) {
             throw new Error(`Failed to review PR changes: ${error.message} (${error.code})`);
           }
-
           throw new Error('Failed to review PR changes: ' + (error instanceof Error ? error.message : String(error)));
         }
       }

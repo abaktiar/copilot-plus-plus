@@ -68,7 +68,8 @@ Format the response as a JSON object with two fields:
   private static readonly PR_REVIEW_INTRO =
     'You are an expert code review assistant with deep technical knowledge across multiple programming languages and frameworks.';
 
-  private static readonly PR_REVIEW_INSTRUCTION = `Analyze the provided git diff carefully and identify concrete issues in the following categories:
+  private static readonly PR_REVIEW_INSTRUCTION = `You are a code review expert. Analyze the provided git diff THOROUGHLY and provide a COMPLETE, COMPREHENSIVE review in a SINGLE response.
+You must identify ALL issues across the following categories AT ONCE:
 {SECURITY_INSTRUCTION}
 {CODE_STYLE_INSTRUCTION}
 {PERFORMANCE_INSTRUCTION}
@@ -76,25 +77,38 @@ Format the response as a JSON object with two fields:
 {LOGICAL_ERRORS_INSTRUCTION}
 {TESTING_GAPS_INSTRUCTION}
 
-For each issue found:
-1. Assign a severity level from: {SEVERITY_LEVELS}
-2. Provide a clear, specific description of the issue
-3. Include the exact file path from the git diff
-4. ALWAYS specify the precise line number shown in the git diff where the issue occurs
-5. Offer a specific, actionable code suggestion to fix the issue
-6. Explain briefly why your suggestion is better
+IMPORTANT RULES FOR YOUR REVIEW:
+1. Provide ALL findings in a SINGLE response - do not split your review across multiple responses
+2. Be thorough and check for ALL possible issues in ALL categories
+3. Review ALL changed files and code sections
+4. For each issue found:
+   - Assign a severity level from: {SEVERITY_LEVELS}
+   - Provide a clear, specific description of the issue
+   - Include the exact file path from the git diff
+   - ALWAYS specify the precise line number shown in the git diff where the issue occurs
+   - Offer a specific, actionable code suggestion to fix the issue
+   - When possible, provide a complete code snippet showing how the fix should be implemented
+   - Explain briefly why your suggestion is better
 
-IMPORTANT: The git diff contains detailed line information that shows both old and new line numbers. When referring to lines, use the NEW line numbers (marked with + in the diff), not the old line numbers. Be extremely precise with line numbers.
+IMPORTANT LINE NUMBER RULES:
+- The git diff contains detailed line information showing both old and new line numbers
+- When referring to lines, use the NEW line numbers (marked with + in the diff), not the old line numbers
+- Be extremely precise with line numbers
 
-Examine both added and modified code. Focus on finding real issues that impact code quality, not stylistic preferences.
+SCOPE OF REVIEW:
+- Examine both added and modified code
+- Focus on finding real issues that impact code quality, not stylistic preferences
+- Consider both immediate and potential future impacts of the changes
+- Look for patterns that might indicate systemic issues
 
-Also provide a summary assessment of the code changes covering:
+SUMMARY REQUIREMENTS:
+Provide a comprehensive summary that includes:
 1. Overall code quality assessment
 2. Key strengths of the changes
-3. Most critical issues to address
+3. Most critical issues to address (if any)
 4. Recommendations for improving the PR
 
-Format the response as a JSON object with the following structure:
+FORMAT YOUR RESPONSE AS A SINGLE JSON OBJECT with this exact structure:
 {
   "summary": {
     "assessment": "Overall assessment of the code changes",
@@ -109,13 +123,16 @@ Format the response as a JSON object with the following structure:
       "description": "Clear description of the issue",
       "filePath": "path/to/file.ext",
       "lineNumber": 123,
-      "suggestion": "Code suggestion to fix the issue",
+      "suggestion": "Brief suggestion to fix the issue",
+      "suggestedCode": "Complete code snippet showing the fix implementation",
       "justification": "Brief explanation of why this suggestion improves the code"
     }
   ]
 }
 
-If no issues are found, return an empty issues array with a positive summary.`;
+If no issues are found, return an empty issues array with a positive summary assessment.
+
+REMEMBER: This must be a COMPLETE review delivered in a SINGLE response. Do not split your findings across multiple responses.`;
 
   private static readonly PR_REVIEW_SECURITY =
     'Check for security vulnerabilities such as injection flaws, authentication issues, sensitive data exposure, broken access controls, insecure dependencies, improper error handling that leaks sensitive information, and missing input validation.';
