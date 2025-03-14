@@ -26,9 +26,17 @@
           case 'branchesList':
             setBranches(message.branches || []);
             setSourceBranch(message.currentBranch || '');
-            // Set target branch to main/master if available
-            const defaultTarget = message.branches.find((b) => ['main', 'master', 'develop'].includes(b.toLowerCase()));
-            setTargetBranch(defaultTarget || '');
+
+            // First check for defaultTargetBranch from config
+            if (message.defaultTargetBranch && message.branches.includes(message.defaultTargetBranch)) {
+              setTargetBranch(message.defaultTargetBranch);
+            } else {
+              // Fall back to main/master/develop if available
+              const defaultTarget = message.branches.find((b) =>
+                ['main', 'master', 'develop'].includes(b.toLowerCase())
+              );
+              setTargetBranch(defaultTarget || '');
+            }
             break;
           case 'startLoading':
             setIsLoading(true);
@@ -48,7 +56,7 @@
               // Sanitize the result to ensure it has the correct properties
               const sanitizedResult = {
                 title: sanitizeText(message.result.title || ''),
-                description: sanitizeText(message.result.description || '')
+                description: sanitizeText(message.result.description || ''),
               };
               setResult(sanitizedResult);
             } else {

@@ -597,4 +597,15 @@ export class GitService {
       return '';
     }
   }
+
+  /**
+   * Retrieves the default target branch from the configuration.
+   * If a default target branch is not defined in the configuration, returns an empty string.
+   *
+   * @returns The default target branch from the configuration or an empty string if not defined
+   */
+  getDefaultTargetBranch(): string {
+    const config = ConfigService.getBaseConfig();
+    return config.defaultTargetBranch || '';
+  }
 }
