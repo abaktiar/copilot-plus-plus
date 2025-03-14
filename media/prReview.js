@@ -370,6 +370,7 @@
         e(SummarySection, {
           title: 'Key Strengths',
           items: result.summary.strengths,
+          className: 'key-strengths',
         }),
         result.summary.criticalIssues.length > 0 &&
           e(SummarySection, {
