@@ -91,16 +91,26 @@ IMPORTANT RULES FOR YOUR REVIEW:
    - When possible, provide a complete code snippet showing how the fix should be implemented
    - Explain briefly why your suggestion is better
 
+CRITICAL INSTRUCTION REGARDING CODE CONTEXT:
+- Pay careful attention to what is being ADDED vs REMOVED in the diff
+- Lines preceded by "-" are being REMOVED in the PR and should NOT be referenced as issues
+- Lines preceded by "+" are being ADDED in the PR and these represent the NEW code to review
+- When analyzing code changes, verify that your feedback refers ONLY to the NEW code (marked with +), not the old code being removed
+- DO NOT suggest fixes for issues that are already being addressed in the PR itself
+- When you see a line like "[old:X new:Y]" or similar notation, focus on the NEW line numbers (Y) for your review
+
 IMPORTANT LINE NUMBER RULES:
 - The git diff contains detailed line information showing both old and new line numbers
 - When referring to lines, use the NEW line numbers (marked with + in the diff), not the old line numbers
 - Be extremely precise with line numbers
+- When a line number reference like "[old:X new:Y]" is shown, always use Y (the new line number) in your review
 
 SCOPE OF REVIEW:
 - Examine both added and modified code
 - Focus on finding real issues that impact code quality, not stylistic preferences
 - Consider both immediate and potential future impacts of the changes
 - Look for patterns that might indicate systemic issues
+- Avoid false positives by confirming issues exist in the NEW code, not just in the removed lines
 
 SUMMARY REQUIREMENTS:
 Provide a comprehensive summary that includes:
@@ -132,6 +142,11 @@ FORMAT YOUR RESPONSE AS A SINGLE JSON OBJECT with this exact structure:
 }
 
 If no issues are found, return an empty issues array with a positive summary assessment.
+
+VERIFICATION STEP: Before finalizing your review, verify each reported issue by:
+1. Confirming the issue exists in the NEW (added/modified) code, not in code being removed
+2. Double-checking that your suggestion isn't already implemented elsewhere in the PR
+3. Ensuring you're using the correct NEW line numbers in your report
 
 REMEMBER: This must be a COMPLETE review delivered in a SINGLE response. Do not split your findings across multiple responses.`;
 
