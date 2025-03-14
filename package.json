@@ -2,7 +2,7 @@
   "name": "copilot-plus-plus",
   "displayName": "Copilot Plus Plus",
   "description": "Enhances GitHub Copilot with AI-powered commit message generation",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "publisher": "albaktiar",
   "engines": {
     "vscode": "^1.98.0"
