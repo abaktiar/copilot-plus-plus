@@ -43,11 +43,37 @@
             setIsLoading(false);
             break;
           case 'generationComplete':
-            setResult(message.result);
+            // Ensure we have valid data before updating the state
+            if (message.result) {
+              // Sanitize the result to ensure it has the correct properties
+              const sanitizedResult = {
+                title: sanitizeText(message.result.title || ''),
+                description: sanitizeText(message.result.description || '')
+              };
+              setResult(sanitizedResult);
+            } else {
+              setError('Received empty result from the server');
+            }
             setIsLoading(false);
             break;
         }
       };
+
+      // Sanitize text content to ensure it's properly displayed
+      const sanitizeText = (text) => {
+        if (!text) return '';
+        // Remove any JSON wrapper if present (sometimes occurs with Claude responses)
+        if (text.includes('"title"') && text.includes('"description"')) {
+          try {
+            const jsonObj = JSON.parse(text);
+            return jsonObj.description || text;
+          } catch (e) {
+            // Not valid JSON, continue with original text
+          }
+        }
+        return text;
+      };
+
       // Generate PR description
       const handleGenerate = () => {
         if (!sourceBranch || !targetBranch) {
@@ -67,6 +93,17 @@
           text,
         });
       };
+
+      // Safely render markdown content
+      const renderMarkdown = (content) => {
+        try {
+          return { __html: marked.parse(content) };
+        } catch (err) {
+          console.error('Error parsing markdown:', err);
+          return { __html: `<pre>${content}</pre>` };
+        }
+      };
+
       // Render UI
       return e(
         'div',
@@ -186,7 +223,7 @@
               ),
               e('div', {
                 className: 'result-content description-content markdown-body',
-                dangerouslySetInnerHTML: { __html: marked.parse(result.description) },
+                dangerouslySetInnerHTML: renderMarkdown(result.description)
               })
             ),
 

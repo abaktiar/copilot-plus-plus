@@ -209,49 +209,125 @@ export class CopilotService {
 
           progress.report({ increment: 10, message: 'Processing response...' });
 
-          // Parse the JSON response
+          // Log the raw response for debugging
+          this.log(`Raw response length: ${responseContent.length}`);
+          this.log(`Response sample: ${responseContent.substring(0, 200)}...`);
+
+          // Parse the JSON response, with enhanced error handling for different LLM formats
           try {
-            // Find JSON object in the response
-            const jsonMatch = responseContent.match(/\{[\s\S]*\}/);
-            const jsonString = jsonMatch ? jsonMatch[0] : responseContent;
+            // For Claude 3.5 and other models that might include other text before or after the JSON
+            // First try to extract a JSON object from the response
+            const jsonMatch = responseContent.match(/\{[\s\S]*?\}/g);
 
-            const result = JSON.parse(jsonString);
+            if (jsonMatch) {
+              // Try each JSON match until we find a valid one with the right fields
+              for (const potentialJson of jsonMatch) {
+                try {
+                  const result = JSON.parse(potentialJson);
+                  if (result.title && result.description) {
+                    const title = result.title.trim();
+                    const description = result.description.trim();
 
-            if (!result.title || !result.description) {
-              throw new Error('Invalid response format');
-            }
-
-            const title = result.title.trim();
-            const description = result.description.trim();
-
-            this.log('PR description generated successfully');
-            this.log(`Generated title: ${title}`);
-
-            return { title, description };
-          } catch (parseError) {
-            this.logError('Error parsing PR description JSON: ' + parseError);
-
-            // Fallback: Try to extract title and description manually
-            const lines = responseContent.split('\n');
-            let title = '';
-            let description = '';
-
-            // Find a line that looks like a title (first non-empty line that doesn't start with '{')
-            for (const line of lines) {
-              const trimmedLine = line.trim();
-              if (trimmedLine && !trimmedLine.startsWith('{') && !trimmedLine.startsWith('"')) {
-                title = trimmedLine.replace(/^#\s*/, ''); // Remove leading # if present
-                break;
+                    this.log('PR description successfully parsed from JSON');
+                    this.log(`Generated title: ${title}`);
+                    return { title, description };
+                  }
+                } catch (innerErr) {
+                  // Continue to the next candidate
+                }
               }
             }
 
-            // Everything else is the description
-            description = responseContent.replace(title, '').trim();
+            // If we got here, we didn't find a valid JSON structure with title and description
+            // Try direct parsing of the whole response
+            try {
+              const result = JSON.parse(responseContent);
+              if (result.title && result.description) {
+                const title = result.title.trim();
+                const description = result.description.trim();
+
+                this.log('PR description parsed from full JSON response');
+                this.log(`Generated title: ${title}`);
+                return { title, description };
+              }
+            } catch (err) {
+              this.log('Response is not valid JSON, trying fallback parsing');
+            }
+
+            // Fallback: Try to extract title and description manually
+            this.log('Using fallback extraction for title and description');
+            const lines = responseContent.split('\n');
+            let title = '';
+            let description = '';
+            let descriptionStarted = false;
+
+            for (const line of lines) {
+              const trimmedLine = line.trim();
+
+              // Skip empty lines and obvious JSON markers
+              if (!trimmedLine || trimmedLine === '{' || trimmedLine === '}') {
+                continue;
+              }
+
+              // If we haven't found a title yet, look for it
+              if (!title && !trimmedLine.startsWith('"')) {
+                // Clean potential markdown headers or JSON field indicators
+                title = trimmedLine
+                  .replace(/^#\s*/, '') // Remove markdown heading marker
+                  .replace(/^"title"[:]\s*["']?/, '') // Remove JSON field
+                  .replace(/["',]$/, ''); // Remove trailing quotes or commas
+                continue;
+              }
+
+              // After finding the title, everything else is the description
+              if (title && !descriptionStarted) {
+                if (
+                  trimmedLine.includes('description') ||
+                  trimmedLine.startsWith('#') ||
+                  trimmedLine.startsWith('-') ||
+                  trimmedLine.startsWith('*')
+                ) {
+                  descriptionStarted = true;
+                }
+              }
+
+              if (descriptionStarted) {
+                // Exclude lines that look like JSON field names
+                if (!trimmedLine.match(/^"[^"]+"\s*:/)) {
+                  description += line + '\n';
+                }
+              }
+            }
+
+            // Fallback to simple extraction if we still don't have a title
+            if (!title) {
+              for (const line of lines) {
+                const trimmedLine = line.trim();
+                if (trimmedLine && !trimmedLine.startsWith('{') && !trimmedLine.startsWith('"')) {
+                  title = trimmedLine;
+                  break;
+                }
+              }
+
+              // Everything else is the description
+              description = responseContent.replace(title, '').trim();
+            }
 
             this.log('Fallback parsing used for PR description');
             this.log(`Generated title: ${title}`);
 
-            return { title, description };
+            return {
+              title: title || 'PR Title', // Provide default if we couldn't extract one
+              description: description || responseContent, // Use full response if no description found
+            };
+          } catch (parseError) {
+            this.logError('Error processing PR description: ' + parseError);
+
+            // Last resort fallback
+            return {
+              title: 'PR Title (extraction failed)',
+              description: responseContent,
+            };
           }
         } catch (error) {
           this.logError('Error generating PR description: ' + error);
