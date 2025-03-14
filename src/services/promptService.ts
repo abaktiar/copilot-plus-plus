@@ -3,6 +3,7 @@ import { ConfigService, CommitMessageConfig, PrDescriptionConfig, PrReviewConfig
 import { DetailedDiffLine } from './gitService';
 
 const MAX_CONTEXT_LENGTH = 100000; // 1 lakh characters
+const MAX_FILE_CONTEXT = 20000; // Maximum characters per file
 
 export class PromptService {
   private static readonly COMMIT_INTRO =
@@ -202,6 +203,41 @@ ${context.commitTemplate || 'Not available'}`;
   }
 
   /**
+   * Smart truncation that preserves complete file contexts up to a limit
+   */
+  private static smartTruncateContext(diff: string): string {
+    // Split by file sections (git diff markers)
+    const files = diff.split('diff --git');
+
+    // Process each file, preserving complete file contexts where possible
+    return files
+      .map((file, index) => {
+        // Skip empty sections or just whitespace
+        if (!file.trim()) {
+          return '';
+        }
+
+        // Add back the diff marker except for first empty section
+        const prefix = index === 0 && !file.trim() ? '' : 'diff --git';
+
+        // If the file section is too large, truncate it
+        if (file.length > MAX_FILE_CONTEXT) {
+          // Find the last complete hunk before the limit
+          const truncateIndex = file.lastIndexOf('\n@@', MAX_FILE_CONTEXT);
+          if (truncateIndex > 0) {
+            // Truncate at the last complete hunk
+            return prefix + file.substring(0, truncateIndex) + '\n... (file diff truncated)';
+          }
+          // If no hunk marker found, do a simple truncation
+          return prefix + file.substring(0, MAX_FILE_CONTEXT) + '\n... (file diff truncated)';
+        }
+
+        return prefix + file;
+      })
+      .join('');
+  }
+
+  /**
    * Build prompt messages for PR description generation
    */
   public static buildPrDescriptionPrompt(context: {
@@ -249,12 +285,8 @@ ${commitsFormatted || 'No commits found between branches'}
 Files Changed:
 ${filesFormatted}
 
-Changes (git diff - truncated if large):
-${
-  context.diff.length > MAX_CONTEXT_LENGTH
-    ? context.diff.substring(0, MAX_CONTEXT_LENGTH) + '\n... (diff truncated)'
-    : context.diff
-}
+Changes (git diff - smartly truncated if large):
+${context.diff.length > MAX_CONTEXT_LENGTH ? this.smartTruncateContext(context.diff) : context.diff}
 `;
 
     // Determine PR description style instruction based on config
@@ -319,7 +351,7 @@ ${
         ? context.files.map((f) => `${f.status} ${f.file}`).join('\n')
         : 'No file list available';
 
-    // Build the context message
+    // Build the context message with smart truncation
     const contextMessage = `
 Pull Request Review Context:
 Source Branch: ${context.sourceBranch}
@@ -334,8 +366,8 @@ ${commitsFormatted || 'No commits found between branches'}
 Diff Context and Line Information:
 ${context.detailedDiff ? this.formatDetailedDiff(context.detailedDiff) : 'No detailed diff available'}
 
-Full Changes (git diff):
-${context.diff || 'No diff available'}`;
+Full Changes (git diff - smartly truncated if large):
+${context.diff.length > MAX_CONTEXT_LENGTH ? this.smartTruncateContext(context.diff) : context.diff}`;
 
     // Add review instruction components based on config
     const securityInstruction = config.includeSecurity ? this.PR_REVIEW_SECURITY : '';
