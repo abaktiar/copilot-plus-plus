@@ -1,4 +1,4 @@
-# Copilot Plus Plus
+# Copilot++
 A VS Code extension that enhances GitHub Copilot capabilities with AI-powered development workflows.
 
 ## Features
