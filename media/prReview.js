@@ -183,16 +183,8 @@
     const [isLoading, setIsLoading] = React.useState(false);
     const [error, setError] = React.useState(null);
 
-    const models = [
-      { id: 'gpt-4o', name: 'GPT-4o : Most capable model, best for complex understanding' },
-      { id: 'gpt-4o-mini', name: 'GPT-4o-mini : Faster variant with slightly reduced capabilities' },
-      {
-        id: 'claude-3.5-sonnet',
-        name: "Claude 3.5 Sonnet : Anthropic's model with excellent context understanding",
-      },
-      { id: 'o1', name: 'o1 : OpenAI o1 model, highest reasoning capabilities' },
-      { id: 'o1-mini', name: 'o1-mini : Smaller, faster OpenAI o1 model' },
-    ];
+    // Get models from shared config
+    const models = window.sharedModelConfig?.models || [];
 
     React.useEffect(() => {
       // Request branches when component mounts
@@ -209,7 +201,6 @@
             if (message.languageModel) {
               setSelectedModel(message.languageModel);
             }
-            
 
             // First check for defaultTargetBranch from config
             if (message.defaultTargetBranch && message.branches.includes(message.defaultTargetBranch)) {
