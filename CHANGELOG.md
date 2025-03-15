@@ -2,6 +2,22 @@
 All notable changes to the "copilot-plus-plus" extension will be documented in this file.
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.0.10] - 2025-03-15
+### Added
+- New configuration option for testing gap detection in PR reviews
+- Extended severity levels for issue categorization
+- Enhanced error handling for API requests
+
+### Changed
+- Improved prompt templates for more accurate results
+- Enhanced configuration documentation
+- Optimized PR review response processing
+
+### Fixed
+- Performance improvements in large repositories
+- Minor UI responsiveness issues
+- Bug fixes in commit message generation
+
 ## [0.0.8] - 2025-03-14
 ### Added
 - PR Review Assistance feature
