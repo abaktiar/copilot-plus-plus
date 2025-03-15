@@ -147,6 +147,7 @@ export class PrDescriptionPanel {
     const markedUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this._extensionUri, 'media', 'lib', 'marked-4.0.0.min.js')
     );
+    const modelConfigUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'modelConfig.js'));
 
     // Use a nonce to only allow specific scripts to be run
     const nonce = getNonce();
@@ -165,6 +166,7 @@ export class PrDescriptionPanel {
                 <script nonce="${nonce}" src="${reactUri}"></script>
                 <script nonce="${nonce}" src="${reactDomUri}"></script>
                 <script nonce="${nonce}" src="${markedUri}"></script>
+                <script nonce="${nonce}" src="${modelConfigUri}"></script>
                 <script nonce="${nonce}" src="${scriptUri}"></script>
             </body>
             </html>`;
