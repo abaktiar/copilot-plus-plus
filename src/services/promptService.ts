@@ -166,7 +166,7 @@ REMEMBER: This must be a COMPLETE review delivered in a SINGLE response. Do not 
     'Identify logical errors including off-by-one errors, incorrect conditionals, improper state management, race conditions, edge cases not handled, incorrect assumptions, and flawed business logic implementation.';
 
   private static readonly PR_REVIEW_TESTING_GAPS =
-    'Identify any missing tests or testing gaps that should be addressed before merging.';
+    "Check for missing or inadequate tests, particularly for new features or bug fixes, edge cases not covered, and test code that doesn't properly validate the expected behavior.";
 
   // Breaking changes prompt templates
   private static readonly BREAKING_CHANGES_INTRO =
