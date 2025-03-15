@@ -29,6 +29,12 @@ export interface PrReviewConfig {
   includeTestingGaps: boolean;
 }
 
+export interface BreakingChangesConfig {
+  includePrivateAPIs: boolean;
+  includeInternal: boolean;
+  detectionLevel: 'strict' | 'moderate' | 'lenient';
+}
+
 /**
  * Service to manage extension configuration
  */
@@ -168,5 +174,17 @@ export class ConfigService {
         callback();
       }
     });
+  }
+
+  /**
+   * Get the configuration for breaking changes analysis
+   */
+  public static getBreakingChangesConfig(): BreakingChangesConfig {
+    const config = vscode.workspace.getConfiguration('copilotPlusPlus.breakingChanges');
+    return {
+      includePrivateAPIs: config.get<boolean>('includePrivateAPIs') ?? false,
+      includeInternal: config.get<boolean>('includeInternal') ?? false,
+      detectionLevel: config.get<'strict' | 'moderate' | 'lenient'>('detectionLevel') || 'moderate',
+    };
   }
 }

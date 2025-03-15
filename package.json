@@ -2,7 +2,7 @@
   "name": "copilot-plus-plus",
   "displayName": "Copilot++",
   "description": "Enhances GitHub Copilot capabilities with AI-powered development workflows.",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "publisher": "albaktiar",
   "engines": {
     "vscode": "^1.98.0"
@@ -59,6 +59,12 @@
         "title": "Review PR Changes",
         "icon": "$(code)",
         "category": "Copilot++"
+      },
+      {
+        "command": "copilot-plus-plus.analyzeBreakingChanges",
+        "title": "Analyze Breaking Changes",
+        "icon": "$(warning)",
+        "category": "Copilot++"
       }
     ],
     "menus": {
@@ -77,6 +83,10 @@
         {
           "command": "copilot-plus-plus.generatePRDescription",
           "when": "git.state == initialized"
+        },
+        {
+          "command": "copilot-plus-plus.analyzeBreakingChanges",
+          "when": "git.state == initialized"
         }
       ]
     },
@@ -84,7 +94,7 @@
       "activitybar": [
         {
           "id": "copilot-plus-plus",
-          "title": "Copilot++ : PR Description Generator",
+          "title": "Copilot++",
           "icon": "$(code)"
         }
       ]
@@ -93,7 +103,7 @@
       "copilot-plus-plus": [
         {
           "id": "copilotPlusPlusView",
-          "name": "PR Description",
+          "name": "PR Description Generator",
           "type": "webview",
           "icon": "$(code)"
         }
@@ -263,6 +273,31 @@
             "**/lib/**/*.min.js"
           ],
           "description": "Glob patterns for files to ignore in git diffs. Defaults to a comprehensive set of non-development files including minified code, compiled output, binary files, and third-party dependencies."
+        },
+        "copilotPlusPlus.breakingChanges.includePrivateAPIs": {
+          "type": "boolean",
+          "default": false,
+          "description": "Include private APIs in breaking changes analysis"
+        },
+        "copilotPlusPlus.breakingChanges.includeInternal": {
+          "type": "boolean",
+          "default": false,
+          "description": "Include internal implementation details in breaking changes analysis"
+        },
+        "copilotPlusPlus.breakingChanges.detectionLevel": {
+          "type": "string",
+          "enum": [
+            "strict",
+            "moderate",
+            "lenient"
+          ],
+          "enumDescriptions": [
+            "Strict - Detect all potential breaking changes, including minor signature changes",
+            "Moderate - Detect significant breaking changes that would affect most consumers",
+            "Lenient - Only detect major breaking changes that would affect all consumers"
+          ],
+          "default": "moderate",
+          "description": "Detection sensitivity level for breaking changes analysis"
         }
       }
     }
@@ -297,3 +332,4 @@
   },
   "dependencies": {}
 }
+
