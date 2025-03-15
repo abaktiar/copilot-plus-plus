@@ -61,6 +61,11 @@ h3 {
   gap: 8px;
 }
 
+.form-column.model-selector {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
 label {
   font-size: 14px;
   color: var(--vscode-descriptionForeground);
@@ -427,4 +432,10 @@ button:disabled {
   display: flex;
   gap: 8px;
   align-items: center;
+}
+
+.model-info {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  margin-top: 4px;
 }

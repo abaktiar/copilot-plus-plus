@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 
 export interface BaseConfig {
   defaultTargetBranch: string;
+  ignoredFilePatterns: string[];
 }
 
 export interface CommitMessageConfig {
@@ -79,7 +80,7 @@ export class ConfigService {
    */
   public static getLanguageModelFamily(): string {
     const config = vscode.workspace.getConfiguration('copilotPlusPlus');
-    return config.get<string>('languageModel') || 'copilot';
+    return config.get<string>('languageModel') || 'gpt-4o';
   }
 
   /**
@@ -90,11 +91,69 @@ export class ConfigService {
    *
    * @returns {BaseConfig} An object containing the base configuration values:
    *  - defaultTargetBranch: The default branch to target for operations (defaults to empty string if not set)
+   *  - ignoredFilePatterns: Array of file patterns to ignore in git diffs (with sensible defaults)
    */
   public static getBaseConfig(): BaseConfig {
     const config = vscode.workspace.getConfiguration('copilotPlusPlus');
+
+    // Default ignored file patterns that are typically not directly developed
+    const defaultIgnoredPatterns = [
+      // Minified files
+      '*.min.js',
+      '*.min.css',
+      '*.min.*.js',
+      '*.min.*.css',
+
+      // Compiled/generated files
+      '*.bundle.js',
+      '*.bundle.css',
+      '*.generated.*',
+      '*.gen.*',
+      '*.g.*',
+
+      // Map files
+      '*.map',
+      '*.sourcemap',
+
+      // Build output
+      'dist/**',
+      'build/**',
+
+      // Generated documentation
+      'docs/generated/**',
+
+      // Images and binary files
+      '*.png',
+      '*.jpg',
+      '*.jpeg',
+      '*.gif',
+      '*.ico',
+      '*.svg',
+      '*.woff',
+      '*.woff2',
+      '*.ttf',
+      '*.eot',
+
+      // Lock files
+      'package-lock.json',
+      'yarn.lock',
+      'pnpm-lock.yaml',
+
+      // Vendored dependencies
+      'vendor/**',
+      'node_modules/**',
+
+      // Generated API clients
+      '**/api/generated/**',
+
+      // Third-party libraries
+      '**/lib/**/*.min.js',
+    ];
+
     return {
       defaultTargetBranch: config.get<string>('defaultTargetBranch') || '',
+      // Use user-defined patterns if provided, otherwise use the defaults
+      ignoredFilePatterns: config.get<string[]>('ignoredFilePatterns') || defaultIgnoredPatterns,
     };
   }
 

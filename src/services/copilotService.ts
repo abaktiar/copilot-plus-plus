@@ -382,7 +382,7 @@ export class CopilotService {
   /**
    * Review PR changes using GitHub Copilot
    */
-  async reviewPrChanges(prContext: PrContext): Promise<PrReviewResult> {
+  async reviewPrChanges(prContext: PrContext, modelFamily?: string): Promise<PrReviewResult> {
     return await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
@@ -400,16 +400,17 @@ export class CopilotService {
 
           progress.report({ increment: 20, message: 'Initializing language model...' });
 
-          const modelFamily = ConfigService.getLanguageModelFamily();
-          this.log(`Using language model family: ${modelFamily}`);
+          // Use provided model family or fall back to config
+          const selectedModelFamily = modelFamily || ConfigService.getLanguageModelFamily();
+          this.log(`Using language model family: ${selectedModelFamily}`);
 
           const [model] = await vscode.lm.selectChatModels({
             vendor: 'copilot',
-            family: modelFamily,
+            family: selectedModelFamily,
           });
 
           if (!model) {
-            const errorMsg = `No suitable language model found for: ${modelFamily}. Please make sure GitHub Copilot is installed and enabled.`;
+            const errorMsg = `No suitable language model found for: ${selectedModelFamily}. Please make sure GitHub Copilot is installed and enabled.`;
             this.logError(errorMsg);
             throw new Error(errorMsg);
           }
@@ -427,19 +428,19 @@ export class CopilotService {
           let responseContent = '';
           let progressIncrement = 30; // Remaining progress to distribute
           let chunkCount = 0;
-          
+
           this.log('Receiving streamed response...');
           for await (const fragment of response.text) {
             responseContent += fragment;
             chunkCount++;
-            
+
             // Update progress every few chunks
             if (chunkCount % 5 === 0) {
               const currentIncrement = Math.min(2, progressIncrement);
               progressIncrement -= currentIncrement;
-              progress.report({ 
+              progress.report({
                 increment: currentIncrement,
-                message: 'Processing analysis...' 
+                message: 'Processing analysis...',
               });
             }
           }
@@ -448,20 +449,23 @@ export class CopilotService {
           progress.report({ increment: progressIncrement, message: 'Finalizing results...' });
 
           // Parse the JSON response
+          // Parse the JSON response
           try {
             // Find JSON object in the response
             const jsonMatch = responseContent.match(/\{[\s\S]*\}/);
             const jsonString = jsonMatch ? jsonMatch[0] : responseContent;
+
             const parsedResult = JSON.parse(jsonString);
             const result = CopilotService.extendedPrReviewResponse(parsedResult);
 
             this.log('PR review completed successfully');
             this.log(`Found ${result.issues.length} issues`);
-            
+
             progress.report({ increment: 10, message: 'Complete!' });
             return result;
           } catch (parseError) {
             this.logError('Error parsing PR review JSON: ' + parseError);
+            this.log(`Failed JSON content sample: ${responseContent.substring(0, 300)}...`);
             this.log('Falling back to error response format');
             return CopilotService.extendedPrReviewResponse(responseContent);
           }

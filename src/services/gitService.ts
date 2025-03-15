@@ -186,6 +186,23 @@ export class GitService {
   }
 
   /**
+   * Check if the given path is a Git repository
+   * @param path Path to check
+   * @returns Promise<boolean> True if the path is a Git repository
+   */
+  async isGitRepository(path: string): Promise<boolean> {
+    this.log(`Checking if ${path} is a Git repository`);
+    try {
+      await execAsync('git rev-parse --git-dir', { cwd: path });
+      this.log('Valid Git repository found');
+      return true;
+    } catch (error) {
+      this.log('Not a Git repository');
+      return false;
+    }
+  }
+
+  /**
    * Log a message to the output channel
    */
   private log(message: string): void {
@@ -319,9 +336,11 @@ export class GitService {
   async getCommitContext(workspaceRoot: string): Promise<CommitContext> {
     this.log('Getting commit context');
     try {
+      const exclusions = this.getGitExclusionPatterns();
+
       const [diffResult, filesResult, template, recentCommits, branchInfo] = await Promise.all([
-        execAsync('git diff --staged', { cwd: workspaceRoot }),
-        execAsync('git diff --staged --name-status', { cwd: workspaceRoot }),
+        execAsync(`git diff --staged ${exclusions}`, { cwd: workspaceRoot }),
+        execAsync(`git diff --staged --name-status ${exclusions}`, { cwd: workspaceRoot }),
         this.getCommitTemplate(workspaceRoot),
         this.getRecentCommits(workspaceRoot),
         this.getBranchInfo(workspaceRoot),
@@ -399,8 +418,10 @@ export class GitService {
         throw new Error('No workspace folder open');
       }
 
+      const exclusions = this.getGitExclusionPatterns();
+
       // Get the raw diff
-      const { stdout } = await execAsync(`git diff --patch ${targetBranch}...${sourceBranch}`, {
+      const { stdout } = await execAsync(`git diff --patch ${targetBranch}...${sourceBranch} ${exclusions}`, {
         cwd: workspaceRoot,
       });
 
@@ -485,8 +506,10 @@ export class GitService {
         throw new Error('No workspace folder open');
       }
 
+      const exclusions = this.getGitExclusionPatterns();
+
       // Get a diff between the two branches
-      const { stdout } = await execAsync(`git diff --stat --patch ${targetBranch}...${sourceBranch}`, {
+      const { stdout } = await execAsync(`git diff --stat --patch ${targetBranch}...${sourceBranch} ${exclusions}`, {
         cwd: workspaceRoot,
       });
 
@@ -524,10 +547,18 @@ export class GitService {
         throw new Error('No workspace folder open');
       }
 
-      // Get name-status format to see what files changed
+      // const exclusions = this.getGitExclusionPatterns();
+
+      // // Get name-status format to see what files changed, including exclusions
+      // const { stdout } = await execAsync(`git diff --name-status ${targetBranch}...${sourceBranch} ${exclusions}`, {
+      //   cwd: workspaceRoot,
+      // });
+
+      // Get name-status format to see what files changed, including exclusions
       const { stdout } = await execAsync(`git diff --name-status ${targetBranch}...${sourceBranch}`, {
         cwd: workspaceRoot,
       });
+
 
       if (!stdout.trim()) {
         this.log('No files changed between branches');
@@ -550,6 +581,22 @@ export class GitService {
       this.logError('Error getting files between branches', error);
       return [];
     }
+  }
+
+  /**
+   * Generate path exclusions for git commands based on ignored file patterns
+   * @returns String with git exclusion patterns (e.g. ":(exclude)*.min.js :(exclude)*.map")
+   */
+  private getGitExclusionPatterns(): string {
+    const config = ConfigService.getBaseConfig();
+    const ignoredPatterns = config.ignoredFilePatterns || [];
+    
+    if (ignoredPatterns.length === 0) {
+      return '';
+    }
+    
+    // Convert each pattern to a git pathspec exclusion format
+    return ignoredPatterns.map(pattern => `":(exclude)${pattern}"`).join(' ');
   }
 
   /**

@@ -214,6 +214,46 @@
           "type": "boolean",
           "default": true,
           "description": "Identify missing or inadequate test coverage during PR reviews"
+        },
+        "copilotPlusPlus.ignoredFilePatterns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "*.min.js",
+            "*.min.css",
+            "*.min.*.js",
+            "*.min.*.css",
+            "*.bundle.js",
+            "*.bundle.css",
+            "*.generated.*",
+            "*.gen.*",
+            "*.g.*",
+            "*.map",
+            "*.sourcemap",
+            "dist/**",
+            "build/**",
+            "docs/generated/**",
+            "*.png",
+            "*.jpg",
+            "*.jpeg",
+            "*.gif",
+            "*.ico",
+            "*.svg",
+            "*.woff",
+            "*.woff2",
+            "*.ttf",
+            "*.eot",
+            "package-lock.json",
+            "yarn.lock",
+            "pnpm-lock.yaml",
+            "vendor/**",
+            "node_modules/**",
+            "**/api/generated/**",
+            "**/lib/**/*.min.js"
+          ],
+          "description": "Glob patterns for files to ignore in git diffs. Defaults to a comprehensive set of non-development files including minified code, compiled output, binary files, and third-party dependencies."
         }
       }
     }
