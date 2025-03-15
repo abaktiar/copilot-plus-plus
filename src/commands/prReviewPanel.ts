@@ -316,8 +316,12 @@ export class PrReviewPanel {
 
   private _getHtmlForWebview(webview: vscode.Webview) {
     // Get the local path to scripts and css
-    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'prReview.js'));
-    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'prReview.css'));
+    const scriptUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, 'media', 'pr-review', 'prReview.js')
+    );
+    const styleUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, 'media', 'pr-review', 'prReview.css')
+    );
     const reactUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this._extensionUri, 'media', 'lib', 'react-18.3.1.min.js')
     );

@@ -168,10 +168,10 @@ export class BreakingChangesPanel {
   private _getHtmlForWebview(webview: vscode.Webview) {
     // Get the local path to scripts and css
     const scriptUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'media', 'breaking-changes-panel.js')
+      vscode.Uri.joinPath(this._extensionUri, 'media', 'breaking-changes', 'breaking-changes-panel.js')
     );
     const styleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'media', 'breaking-changes-panel.css')
+      vscode.Uri.joinPath(this._extensionUri, 'media', 'breaking-changes', 'breaking-changes-panel.css')
     );
     const reactUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this._extensionUri, 'media', 'lib', 'react-18.3.1.min.js')

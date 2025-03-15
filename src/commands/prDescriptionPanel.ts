@@ -143,8 +143,12 @@ export class PrDescriptionPanel {
 
   private _getHtmlForWebview(webview: vscode.Webview) {
     // Get the local path to scripts and css
-    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'prDescription.js'));
-    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'prDescription.css'));
+    const scriptUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, 'media', 'pr-description', 'prDescription.js')
+    );
+    const styleUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, 'media', 'pr-description', 'prDescription.css')
+    );
     const reactUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'lib', 'react-18.3.1.min.js'));
     const reactDomUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'lib', 'react-dom-18.3.1.min.js'));
     const markedUri = webview.asWebviewUri(
