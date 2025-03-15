@@ -154,7 +154,10 @@ export class CopilotService {
   /**
    * Generate PR description using GitHub Copilot
    */
-  async generatePrDescription(prContext: PrContext): Promise<{ title: string; description: string }> {
+  async generatePrDescription(
+    prContext: PrContext,
+    modelFamily?: string
+  ): Promise<{ title: string; description: string }> {
     return await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
@@ -172,18 +175,18 @@ export class CopilotService {
 
           progress.report({ increment: 20, message: 'Initializing language model...' });
 
-          // Get the configured language model family
-          const modelFamily = ConfigService.getLanguageModelFamily();
-          this.log(`Using language model family: ${modelFamily}`);
+          // Use provided model family or fall back to config
+          const selectedModelFamily = modelFamily || ConfigService.getLanguageModelFamily();
+          this.log(`Using language model family: ${selectedModelFamily}`);
 
           // Select the configured Copilot model
           const [model] = await vscode.lm.selectChatModels({
             vendor: 'copilot',
-            family: modelFamily,
+            family: selectedModelFamily,
           });
 
           if (!model) {
-            const errorMsg = `No suitable language model found for: ${modelFamily}. Please make sure GitHub Copilot is installed and enabled.`;
+            const errorMsg = `No suitable language model found for: ${selectedModelFamily}. Please make sure GitHub Copilot is installed and enabled.`;
             this.logError(errorMsg);
             throw new Error(errorMsg);
           }

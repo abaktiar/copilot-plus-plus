@@ -206,7 +206,9 @@
             setBranches(message.branches);
             setCurrentBranch(message.currentBranch);
             setSourceBranch(message.currentBranch);
-            setSelectedModel(message.languageModel);
+            if (message.languageModel) {
+              setSelectedModel(message.languageModel);
+            }
             
 
             // First check for defaultTargetBranch from config

@@ -433,9 +433,3 @@ button:disabled {
   gap: 8px;
   align-items: center;
 }
-
-.model-info {
-  font-size: 12px;
-  color: var(--vscode-descriptionForeground);
-  margin-top: 4px;
-}

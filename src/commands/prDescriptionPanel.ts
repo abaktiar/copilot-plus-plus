@@ -56,19 +56,24 @@ export class PrDescriptionPanel {
             const branches = await this._gitService.getAvailableBranches();
             const currentBranch = await this._gitService.getCurrentBranch();
             const defaultTargetBranch = this._gitService.getDefaultTargetBranch();
+            const languageModel = ConfigService.getLanguageModelFamily();
 
-            
             this._panel.webview.postMessage({
               command: 'branchesList',
               branches,
               currentBranch,
               defaultTargetBranch,
+              languageModel,
             });
             break;
 
           case 'generatePrDescription':
             try {
-              await this.generatePrDescription(message.sourceBranch, message.targetBranch);
+              await this.generatePrDescription(
+                message.sourceBranch, 
+                message.targetBranch, 
+                message.modelFamily
+              );
             } catch (error) {
               this._panel.webview.postMessage({
                 command: 'error',
@@ -92,7 +97,7 @@ export class PrDescriptionPanel {
     );
   }
 
-  private async generatePrDescription(sourceBranch: string, targetBranch: string) {
+  private async generatePrDescription(sourceBranch: string, targetBranch: string, modelFamily?: string) {
     try {
       this._panel.webview.postMessage({ command: 'startLoading' });
 
@@ -114,7 +119,7 @@ export class PrDescriptionPanel {
         files,
       };
 
-      const result = await this._copilotService.generatePrDescription(prContext);
+      const result = await this._copilotService.generatePrDescription(prContext, modelFamily);
       this._panel.webview.postMessage({
         command: 'generationComplete',
         result,
