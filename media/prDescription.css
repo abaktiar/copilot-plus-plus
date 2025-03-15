@@ -415,3 +415,8 @@ label {
     background: color-mix(in srgb, var(--vscode-editor-background) 97%, var(--vscode-button-background));
     border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0;
 }
+
+.form-column.model-selector {
+    margin-top: 20px;
+    margin-bottom: 20px;
+}

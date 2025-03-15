@@ -31,29 +31,52 @@
       const [branches, setBranches] = React.useState([]);
       const [sourceBranch, setSourceBranch] = React.useState('');
       const [targetBranch, setTargetBranch] = React.useState('');
+      const [selectedModel, setSelectedModel] = React.useState('gpt-4o');
       const [isLoading, setIsLoading] = React.useState(false);
       const [error, setError] = React.useState('');
       const [result, setResult] = React.useState(null);
+
+      // Model options
+      const models = [
+        { id: 'gpt-4o', name: 'GPT-4o : Most capable model, best for complex understanding' },
+        { id: 'gpt-4o-mini', name: 'GPT-4o-mini : Faster variant with slightly reduced capabilities' },
+        {
+          id: 'claude-3.5-sonnet',
+          name: "Claude 3.5 Sonnet : Anthropic's model with excellent context understanding",
+        },
+        { id: 'o1', name: 'o1 : OpenAI o1 model, highest reasoning capabilities' },
+        { id: 'o1-mini', name: 'o1-mini : Smaller, faster OpenAI o1 model' },
+      ];
+
       // Initial load - request branches
       React.useEffect(() => {
         const handleMessage = (event) => {
           const message = event.data;
-
           // Log received message
           vscode.postMessage({
             command: 'log',
             message: `Received message: ${message.command}`,
           });
-
           switch (message.command) {
             case 'branchesList':
               setBranches(message.branches || []);
               setSourceBranch(message.currentBranch || '');
-              // Set target branch to main/master if available
-              const defaultTarget = message.branches.find((b) =>
-                ['main', 'master', 'develop'].includes(b.toLowerCase())
-              );
-              setTargetBranch(defaultTarget || '');
+
+              // Set the selected model if provided from backend
+              if (message.languageModel) {
+                setSelectedModel(message.languageModel);
+              }
+
+              // First check for defaultTargetBranch from config
+              if (message.defaultTargetBranch && message.branches.includes(message.defaultTargetBranch)) {
+                setTargetBranch(message.defaultTargetBranch);
+              } else {
+                // Set target branch to main/master if available
+                const defaultTarget = message.branches.find((b) =>
+                  ['main', 'master', 'develop'].includes(b.toLowerCase())
+                );
+                setTargetBranch(defaultTarget || '');
+              }
               setInitialized(true);
               break;
             case 'startLoading':
@@ -80,15 +103,12 @@
           }
         };
         window.addEventListener('message', handleMessage);
-
         // Log initialization
         vscode.postMessage({
           command: 'log',
           message: 'Initializing PR Description view and requesting branches...',
         });
-
         vscode.postMessage({ command: 'getBranches' });
-
         return () => {
           window.removeEventListener('message', handleMessage);
         };
@@ -104,19 +124,17 @@
           });
           return;
         }
-
         setIsLoading(true);
         setError('');
-
         vscode.postMessage({
           command: 'log',
-          message: `Generating PR description for ${sourceBranch} → ${targetBranch}...`,
+          message: `Generating PR description for ${sourceBranch} → ${targetBranch} using model: ${selectedModel}...`,
         });
-
         vscode.postMessage({
           command: 'generatePrDescription',
           sourceBranch,
           targetBranch,
+          modelFamily: selectedModel,
         });
       };
       // Copy to clipboard
@@ -125,7 +143,6 @@
           command: 'log',
           message: 'Copying content to clipboard...',
         });
-
         vscode.postMessage({
           command: 'copyToClipboard',
           text,
@@ -144,7 +161,6 @@
         'div',
         { className: 'container' },
         e('h1', { className: 'heading' }, 'PR Description Generator'),
-
         e(
           'div',
           { className: 'branch-selection' },
@@ -167,7 +183,6 @@
               )
             )
           ),
-
           e(
             'div',
             { className: 'form-group' },
@@ -190,6 +205,27 @@
             )
           ),
 
+          // Model selection
+          e(
+            'div',
+            { className: 'form-group model-selector' },
+            e('label', { htmlFor: 'modelSelect' }, 'Language Model'),
+            e(
+              'div',
+              { className: 'select-wrapper' },
+              e(
+                'select',
+                {
+                  id: 'modelSelect',
+                  value: selectedModel,
+                  onChange: (e) => setSelectedModel(e.target.value),
+                  className: 'select-branch',
+                },
+                models.map((model) => e('option', { key: model.id, value: model.id }, model.name))
+              )
+            )
+          ),
+
           e(
             'button',
             {
@@ -202,9 +238,7 @@
               : e(React.Fragment, null, e('span', { className: 'icon' }, '✨'), 'Generate PR Description')
           )
         ),
-
         error && e('div', { className: 'error' }, error),
-
         isLoading &&
           e(
             'div',
@@ -212,7 +246,6 @@
             e('div', { className: 'spinner' }),
             e('div', null, 'Analyzing changes and generating description...')
           ),
-
         result &&
           e(
             'div',
@@ -235,7 +268,6 @@
               ),
               e('div', { className: 'result-content title-content' }, result.title)
             ),
-
             e(
               'div',
               { className: 'result-section' },
@@ -257,7 +289,6 @@
                 dangerouslySetInnerHTML: { __html: marked.parse(result.description) },
               })
             ),
-
             e(
               'div',
               { className: 'copy-all' },

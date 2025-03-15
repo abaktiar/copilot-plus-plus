@@ -6,10 +6,24 @@
       const [branches, setBranches] = React.useState([]);
       const [sourceBranch, setSourceBranch] = React.useState('');
       const [targetBranch, setTargetBranch] = React.useState('');
+      const [selectedModel, setSelectedModel] = React.useState('gpt-4o');
       const [isLoading, setIsLoading] = React.useState(false);
       const [error, setError] = React.useState('');
       const [result, setResult] = React.useState(null);
       const vscode = acquireVsCodeApi();
+
+      // Model options
+      const models = [
+        { id: 'gpt-4o', name: 'GPT-4o : Most capable model, best for complex understanding' },
+        { id: 'gpt-4o-mini', name: 'GPT-4o-mini : Faster variant with slightly reduced capabilities' },
+        {
+          id: 'claude-3.5-sonnet',
+          name: "Claude 3.5 Sonnet : Anthropic's model with excellent context understanding",
+        },
+        { id: 'o1', name: 'o1 : OpenAI o1 model, highest reasoning capabilities' },
+        { id: 'o1-mini', name: 'o1-mini : Smaller, faster OpenAI o1 model' },
+      ];
+
       // Initial load - request branches
       React.useEffect(() => {
         window.addEventListener('message', handleMessage);
@@ -19,6 +33,7 @@
           window.removeEventListener('message', handleMessage);
         };
       }, []);
+
       // Handle messages from extension
       const handleMessage = (event) => {
         const message = event.data;
@@ -26,6 +41,11 @@
           case 'branchesList':
             setBranches(message.branches || []);
             setSourceBranch(message.currentBranch || '');
+
+            // Set the selected model if provided from backend
+            if (message.languageModel) {
+              setSelectedModel(message.languageModel);
+            }
 
             // First check for defaultTargetBranch from config
             if (message.defaultTargetBranch && message.branches.includes(message.defaultTargetBranch)) {
@@ -92,8 +112,10 @@
           command: 'generatePrDescription',
           sourceBranch,
           targetBranch,
+          modelFamily: selectedModel,
         });
       };
+
       // Copy to clipboard
       const handleCopy = (text) => {
         vscode.postMessage({
@@ -160,6 +182,27 @@
                 branches
                   .filter((branch) => branch !== sourceBranch)
                   .map((branch) => e('option', { key: branch, value: branch }, branch))
+              )
+            )
+          ),
+
+          // Model selection
+          e(
+            'div',
+            { className: 'form-group model-selector' },
+            e('label', { htmlFor: 'modelSelect' }, 'Language Model'),
+            e(
+              'div',
+              { className: 'select-wrapper' },
+              e(
+                'select',
+                {
+                  id: 'modelSelect',
+                  value: selectedModel,
+                  onChange: (e) => setSelectedModel(e.target.value),
+                  className: 'select-branch',
+                },
+                models.map((model) => e('option', { key: model.id, value: model.id }, model.name))
               )
             )
           ),
@@ -231,7 +274,7 @@
               ),
               e('div', {
                 className: 'result-content description-content markdown-body',
-                dangerouslySetInnerHTML: renderMarkdown(result.description)
+                dangerouslySetInnerHTML: renderMarkdown(result.description),
               })
             ),
 

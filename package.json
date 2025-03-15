@@ -76,7 +76,7 @@
       "activitybar": [
         {
           "id": "copilot-plus-plus",
-          "title": "PR Generator",
+          "title": "Copilot++ : PR Description Generator",
           "icon": "$(code)"
         }
       ]
