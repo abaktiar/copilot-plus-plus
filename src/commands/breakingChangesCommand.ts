@@ -3,37 +3,47 @@ import { GitService } from '../services/gitService';
 import { LoggingService } from '../services/loggingService';
 import { BreakingChangesPanel } from './breakingChangesPanel';
 
-/**
- * Register the breaking changes analysis command
- */
-export function registerBreakingChangesCommand(context: vscode.ExtensionContext): void {
-  const logger = LoggingService.getInstance();
-  const gitService = new GitService();
+export class BreakingChangesCommand {
+  private _logger: LoggingService;
+  private _gitService: GitService;
+  private _extensionContext: vscode.ExtensionContext;
 
-  // Register the command
-  const disposable = vscode.commands.registerCommand('copilot-plus-plus.analyzeBreakingChanges', async () => {
+  constructor(context: vscode.ExtensionContext) {
+    this._logger = LoggingService.getInstance();
+    this._gitService = new GitService();
+    this._extensionContext = context;
+  }
+
+  public async execute() {
     try {
-      logger.log('Breaking changes analysis command invoked', 'BreakingChangesCommand');
-
       const workspacePath = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
       if (!workspacePath) {
         throw new Error('No workspace folder found');
       }
 
-      if (!(await gitService.isGitRepository(workspacePath))) {
+      if (!(await this._gitService.isGitRepository(workspacePath))) {
         throw new Error('Not a git repository');
       }
 
-      // Show the breaking changes panel
-      BreakingChangesPanel.createOrShow(vscode.Uri.file(workspacePath));
+      // Show the breaking changes panel with the extension URI instead of workspace URI
+      BreakingChangesPanel.createOrShow(this._extensionContext.extensionUri);
     } catch (error) {
-      logger.logError(`Error analyzing breaking changes: ${error}`, error, 'BreakingChangesCommand');
       vscode.window.showErrorMessage(
-        `Error analyzing breaking changes: ${error instanceof Error ? error.message : String(error)}`
+        'Failed to initialize breaking changes detection: ' + (error instanceof Error ? error.message : String(error))
       );
     }
+  }
+}
+
+/**
+ * Registers the Breaking Changes command
+ * @param context Extension context
+ */
+export function registerBreakingChangesCommand(context: vscode.ExtensionContext) {
+  const disposable = vscode.commands.registerCommand('copilot-plus-plus.analyzeBreakingChanges', async () => {
+    const breakingChangesCommand = new BreakingChangesCommand(context);
+    await breakingChangesCommand.execute();
   });
 
   context.subscriptions.push(disposable);
-  logger.log('Breaking changes command registered', 'BreakingChangesCommand');
 }

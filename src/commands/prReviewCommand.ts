@@ -6,10 +6,12 @@ import { LoggingService } from '../services/loggingService';
 export class PrReviewCommand {
   private _logger: LoggingService;
   private _gitService: GitService;
+  private _extensionContext: vscode.ExtensionContext;
 
-  constructor() {
+  constructor(context: vscode.ExtensionContext) {
     this._logger = LoggingService.getInstance();
     this._gitService = new GitService();
+    this._extensionContext = context;
   }
 
   public async execute() {
@@ -23,8 +25,8 @@ export class PrReviewCommand {
         throw new Error('Not a git repository');
       }
 
-      // Show the review panel
-      PrReviewPanel.createOrShow(vscode.Uri.file(workspacePath));
+      // Show the review panel with the extension URI instead of workspace URI
+      PrReviewPanel.createOrShow(this._extensionContext.extensionUri);
     } catch (error) {
       vscode.window.showErrorMessage(
         'Failed to initialize PR review: ' + (error instanceof Error ? error.message : String(error))
@@ -39,7 +41,7 @@ export class PrReviewCommand {
  */
 export function registerPrReviewCommand(context: vscode.ExtensionContext) {
   const disposable = vscode.commands.registerCommand('copilot-plus-plus.reviewPrChanges', async () => {
-    const prReviewCommand = new PrReviewCommand();
+    const prReviewCommand = new PrReviewCommand(context);
     await prReviewCommand.execute();
   });
 
