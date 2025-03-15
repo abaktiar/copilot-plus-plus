@@ -32,10 +32,29 @@ A VS Code extension that enhances GitHub Copilot capabilities with AI-powered de
 
 ![PR Review Assistance](images/pr-review-assistance.gif)
 
+- **Breaking Changes Analysis**: Identify and analyze potential breaking changes in your code
+  - Detect API changes, interface modifications, and dependency updates
+  - Compare changes between branches to highlight compatibility issues
+  - Provide detailed impact analysis for affected code areas
+  - Generate reports with severity levels and recommended fixes
+  - Automatic detection of semver implications
+
 ### Coming Soon
 - **Code Usage Analysis**: Identify where and how specific code is used throughout your project
 - **Impact Analysis**: Detect potential breaking changes when modifying critical code
 - **Test Generation**: Generate unit tests for your code changes
+
+### PR Review Assistance
+Analyze pull requests to identify potential issues, bugs, and improvements. [Learn more](docs/pr-review-assistance.md)
+
+### Commit Message Generation
+Generate commit messages that follow best practices and include ticket numbers. [Learn more](docs/commit-message-generation.md)
+
+### PR Description Generation
+Generate comprehensive PR descriptions based on your changes. [Learn more](docs/pr-description-generation.md)
+
+### Breaking Changes Analysis
+Identify potential breaking changes between branches to prevent compatibility issues. [Learn more](docs/breaking-changes-analysis.md)
 
 ## Requirements
 - Visual Studio Code ^1.98.0
@@ -78,6 +97,19 @@ For more details, see the [PR Description Generation documentation](docs/pr-desc
 
 For more details, see the [PR Review Assistance documentation](docs/pr-review-assistance.md).
 
+### Breaking Changes Analysis
+1. Open the Command Palette (Ctrl+Shift+P or Cmd+Shift+P on macOS)
+2. Type "Copilot++: Analyze Breaking Changes" and select the command
+3. Select the source branch (typically your feature branch)
+4. Select the target branch (typically the main/master branch)
+5. Choose a language model for the analysis
+6. Click "Analyze Breaking Changes" to start the analysis
+7. View the breaking changes categorized by severity and type
+8. Use the filters to narrow down results by severity, change type, or search term
+9. Click on file locations to navigate directly to the affected code
+
+For more details, see the [Breaking Changes Analysis documentation](docs/breaking-changes-analysis.md).
+
 ### Configuration
 You can customize the extension's behavior through the following settings:
 
@@ -94,6 +126,9 @@ You can customize the extension's behavior through the following settings:
 - `copilotPlusPlus.prReview.includeBreakingChanges`: Detect potential breaking changes
 - `copilotPlusPlus.prReview.enableInlineLinks`: Show clickable links to navigate to issue locations
 - `copilotPlusPlus.defaultTargetBranch`: Set a default target branch for PR operations (e.g., "main" or "develop")
+- `copilotPlusPlus.breakingChanges.detectionLevel`: Set sensitivity level for breaking changes detection ("strict", "moderate", or "lenient")
+- `copilotPlusPlus.breakingChanges.includePrivateAPIs`: Include private APIs in breaking changes analysis
+- `copilotPlusPlus.breakingChanges.includeInternal`: Include internal implementation details in breaking changes analysis
 
 ## Development
 1. Clone the repository
@@ -107,6 +142,13 @@ You can customize the extension's behavior through the following settings:
    ```
 
 ## Release Notes
+
+### 0.0.11 (2025-03-15)
+- Added Breaking Changes Analysis feature
+- Improved UI for branch selection and model choice
+- Enhanced webview panels for better user experience
+- Performance improvements for Git operations
+- Better error handling for branch comparisons
 
 ### 0.0.10 (2025-03-15)
 - Enhanced configuration options for PR review customization

@@ -166,7 +166,51 @@ REMEMBER: This must be a COMPLETE review delivered in a SINGLE response. Do not 
     'Identify logical errors including off-by-one errors, incorrect conditionals, improper state management, race conditions, edge cases not handled, incorrect assumptions, and flawed business logic implementation.';
 
   private static readonly PR_REVIEW_TESTING_GAPS =
-    "Check for missing or inadequate tests, particularly for new features or bug fixes, edge cases not covered, and test code that doesn't properly validate the expected behavior.";
+    'Identify any missing tests or testing gaps that should be addressed before merging.';
+
+  // Breaking changes prompt templates
+  private static readonly BREAKING_CHANGES_INTRO =
+    'Review the following code changes between branches to identify potential breaking changes.';
+
+  private static readonly BREAKING_CHANGES_INSTRUCTION = `Analyze the provided code changes and their usages to identify potential breaking changes.
+Focus on:
+1. API signature changes (method names, parameters, return types)
+2. Class/interface structure modifications
+3. Enum/constant value changes
+4. Removal or relocation of public members
+5. Behavioral changes that could affect consumers
+
+For each identified breaking change:
+- Provide the location of the change (file path and line number)
+- Describe what changed and why it creates a breaking change
+- List all affected locations (file paths and line numbers)
+- Suggest potential fixes or migration strategies
+
+Format your response as a JSON object with the following structure:
+{
+  "breakingChanges": [
+    {
+      "id": "unique-id",
+      "changeType": "one of [method-signature, class-structure, enum-value, member-removal, behavior-change, other]",
+      "severity": "one of [critical, high, medium, low]",
+      "changeLocation": { "filePath": "path/to/file", "lineNumber": 123 },
+      "description": "Description of what changed",
+      "affectedLocations": [
+        { "filePath": "path/to/file", "lineNumber": 456, "codeSnippet": "relevant code" }
+      ],
+      "recommendation": "Suggested fix or migration strategy"
+    }
+  ],
+  "summary": {
+    "totalBreakingChanges": 5,
+    "criticalCount": 1,
+    "highCount": 2,
+    "mediumCount": 1,
+    "lowCount": 1
+  }
+}
+
+Only include actual breaking changes in your response. If no breaking changes are found, return an empty array for breakingChanges.`;
 
   public static buildPrompt(context: {
     files: any[];
@@ -467,5 +511,137 @@ ${context.diff.length > MAX_CONTEXT_LENGTH ? this.smartTruncateContext(context.d
       default:
         return this.PR_DESCRIPTION_DETAILED;
     }
+  }
+
+  /**
+   * Build prompt for breaking changes analysis
+   */
+  public static buildBreakingChangesPrompt(context: {
+    codeChanges: Array<{
+      filePath: string;
+      oldCode: string;
+      newCode: string;
+      lineNumber: number;
+      changeType: string;
+      symbolName?: string;
+      symbolType?: string;
+    }>;
+    usages: Array<{
+      filePath: string;
+      lineNumber: number;
+      codeSnippet: string;
+      symbolName: string;
+    }>;
+    diffInfo: string;
+    files: Array<{ status: string; file: string }>;
+    config?: {
+      includePrivateAPIs: boolean;
+      includeInternal: boolean;
+      detectionLevel: 'strict' | 'moderate' | 'lenient';
+    };
+  }): vscode.LanguageModelChatMessage[] {
+    const messages: vscode.LanguageModelChatMessage[] = [];
+
+    // System message (using Assistant role as System role may not be available)
+    messages.push(
+      vscode.LanguageModelChatMessage.Assistant(
+        'You are a code analysis expert specializing in identifying breaking changes in code. You analyze code differences between branches and identify changes that could break existing functionality for consumers of the code.'
+      )
+    );
+
+    // Introduction message
+    messages.push(vscode.LanguageModelChatMessage.User(this.BREAKING_CHANGES_INTRO));
+
+    // Context information
+    let contextContent = '';
+
+    // Add configuration information if available
+    if (context.config) {
+      contextContent += '## Analysis Configuration\n\n';
+      contextContent += `Detection Level: ${context.config.detectionLevel}\n`;
+      contextContent += `Include Private APIs: ${context.config.includePrivateAPIs ? 'Yes' : 'No'}\n`;
+      contextContent += `Include Internal Implementation Details: ${context.config.includeInternal ? 'Yes' : 'No'}\n\n`;
+
+      // Add specific instructions based on detection level
+      if (context.config.detectionLevel === 'strict') {
+        contextContent +=
+          'Instructions: Be very thorough and report all potential breaking changes, including minor signature changes, renamed variables, and any other changes that could potentially break client code.\n\n';
+      } else if (context.config.detectionLevel === 'moderate') {
+        contextContent +=
+          'Instructions: Focus on significant breaking changes that would affect most consumers, such as changed method signatures, removed public APIs, and altered behavior of commonly used functions.\n\n';
+      } else if (context.config.detectionLevel === 'lenient') {
+        contextContent +=
+          'Instructions: Only report major breaking changes that would affect all consumers, such as removed classes, drastically altered APIs, or fundamental behavioral changes.\n\n';
+      }
+    }
+
+    // Add files information
+    contextContent += '## Changed Files\n\n';
+    for (const file of context.files) {
+      contextContent += `${file.status} ${file.file}\n`;
+    }
+    contextContent += '\n';
+
+    // Add code changes information
+    contextContent += '## Code Changes\n\n';
+    for (const change of context.codeChanges) {
+      contextContent += `### ${change.filePath}:${change.lineNumber}\n`;
+      contextContent += `Type: ${change.changeType}\n`;
+      if (change.symbolName) {
+        contextContent += `Symbol: ${change.symbolName} (${change.symbolType || 'unknown'})\n`;
+      }
+      if (change.oldCode) {
+        contextContent += `Old: \`${change.oldCode.trim()}\`\n`;
+      }
+      if (change.newCode) {
+        contextContent += `New: \`${change.newCode.trim()}\`\n`;
+      }
+      contextContent += '\n';
+    }
+
+    // Add usages information
+    if (context.usages.length > 0) {
+      contextContent += '## Code Usages\n\n';
+
+      // Group usages by symbol name for better organization
+      const usagesBySymbol: Record<string, typeof context.usages> = {};
+      for (const usage of context.usages) {
+        if (!usagesBySymbol[usage.symbolName]) {
+          usagesBySymbol[usage.symbolName] = [];
+        }
+        usagesBySymbol[usage.symbolName].push(usage);
+      }
+
+      for (const [symbolName, usages] of Object.entries(usagesBySymbol)) {
+        contextContent += `### Symbol: ${symbolName}\n`;
+        contextContent += `Found ${usages.length} usages:\n\n`;
+
+        // Limit to 10 usages per symbol to avoid overwhelming the model
+        const limitedUsages = usages.slice(0, 10);
+        for (const usage of limitedUsages) {
+          contextContent += `- ${usage.filePath}:${usage.lineNumber} - \`${usage.codeSnippet}\`\n`;
+        }
+
+        if (usages.length > 10) {
+          contextContent += `- ... and ${usages.length - 10} more usages\n`;
+        }
+
+        contextContent += '\n';
+      }
+    }
+
+    // Add diff information (truncated to avoid overwhelming the model)
+    const truncatedDiff = this.smartTruncateContext(context.diffInfo);
+    if (truncatedDiff) {
+      contextContent += '## Git Diff\n\n```diff\n' + truncatedDiff + '\n```\n';
+    }
+
+    // Add context message
+    messages.push(vscode.LanguageModelChatMessage.User(contextContent));
+
+    // Add instruction message
+    messages.push(vscode.LanguageModelChatMessage.User(this.BREAKING_CHANGES_INSTRUCTION));
+
+    return messages;
   }
 }
