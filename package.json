@@ -33,9 +33,7 @@
   },
   "activationEvents": [
     "onStartupFinished",
-    "onView:scm",
-    "onView:copilotPlusPlusView",
-    "onCommand:copilot-plus-plus.reviewPrChanges"
+    "onView:scm"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -96,7 +94,8 @@
         {
           "id": "copilotPlusPlusView",
           "name": "PR Description",
-          "type": "webview"
+          "type": "webview",
+          "icon": "$(code)"
         }
       ]
     },
