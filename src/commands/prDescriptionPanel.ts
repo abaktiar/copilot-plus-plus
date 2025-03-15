@@ -32,6 +32,9 @@ export class PrDescriptionPanel {
         retainContextWhenHidden: true,
       }
     );
+    // Set the webview icon using our custom icon file
+    const iconCode = vscode.Uri.joinPath(extensionUri, 'images', 'icon.png');
+    panel.iconPath = iconCode;
 
     PrDescriptionPanel.currentPanel = new PrDescriptionPanel(panel, extensionUri);
   }
