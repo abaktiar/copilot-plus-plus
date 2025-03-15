@@ -137,6 +137,11 @@ export class PrDescriptionPanel {
     // Get the local path to scripts and css
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'prDescription.js'));
     const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'prDescription.css'));
+    const reactUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'lib', 'react-18.3.1.min.js'));
+    const reactDomUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'lib', 'react-dom-18.3.1.min.js'));
+    const markedUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, 'media', 'lib', 'marked-4.0.0.min.js')
+    );
 
     // Use a nonce to only allow specific scripts to be run
     const nonce = getNonce();
@@ -146,15 +151,15 @@ export class PrDescriptionPanel {
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}' https://unpkg.com/ 'unsafe-eval'; img-src ${webview.cspSource} https:;">
+                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; img-src ${webview.cspSource} https:;">
                 <link href="${styleUri}" rel="stylesheet">
                 <title>PR Description Generator</title>
             </head>
             <body>
                 <div id="root"></div>
-                <script nonce="${nonce}" src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-                <script nonce="${nonce}" src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-                <script nonce="${nonce}" src="https://unpkg.com/marked@4.0.0/marked.min.js"></script>
+                <script nonce="${nonce}" src="${reactUri}"></script>
+                <script nonce="${nonce}" src="${reactDomUri}"></script>
+                <script nonce="${nonce}" src="${markedUri}"></script>
                 <script nonce="${nonce}" src="${scriptUri}"></script>
             </body>
             </html>`;
