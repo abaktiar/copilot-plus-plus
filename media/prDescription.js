@@ -1,4 +1,5 @@
 (function() {
+    const vscode = acquireVsCodeApi();
     const e = React.createElement;
     
     // Main Application Component
@@ -10,7 +11,6 @@
       const [isLoading, setIsLoading] = React.useState(false);
       const [error, setError] = React.useState('');
       const [result, setResult] = React.useState(null);
-      const vscode = acquireVsCodeApi();
 
       // Get models from shared config
       const models = window.sharedModelConfig?.models || [];
@@ -99,6 +99,8 @@
           setError('Please select both source and target branches');
           return;
         }
+        setIsLoading(true);
+        setError('');
         vscode.postMessage({
           command: 'generatePrDescription',
           sourceBranch,

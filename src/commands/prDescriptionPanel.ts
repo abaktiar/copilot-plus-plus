@@ -187,6 +187,14 @@ export class PrDescriptionPanel {
   }
 }
 
+export function registerPrDescriptionCommand(context: vscode.ExtensionContext) {
+  const disposable = vscode.commands.registerCommand('copilot-plus-plus.generatePRDescription', () => {
+    PrDescriptionPanel.createOrShow(context.extensionUri);
+  });
+
+  context.subscriptions.push(disposable);
+}
+
 function getNonce() {
     let text = '';
     const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
