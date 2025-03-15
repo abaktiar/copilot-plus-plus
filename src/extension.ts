@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { CopilotPlusPlusViewProvider } from './commands/CopilotPlusPlusViewProvider';
 import { registerCommitMessageCommand } from './commands/commitMessageCommand';
 import { registerPrReviewCommand } from './commands/prReviewCommand';
+import { registerPrDescriptionCommand } from './commands/prDescriptionPanel';
 import { LoggingService } from './services/loggingService';
 
 // Keep track of view provider
@@ -15,6 +16,7 @@ export function activate(context: vscode.ExtensionContext) {
   // Register commands
   registerCommitMessageCommand(context);
   registerPrReviewCommand(context);
+  registerPrDescriptionCommand(context);
 
   // Create and register the PR Description view provider
   try {

@@ -51,9 +51,15 @@
         "category": "Copilot++"
       },
       {
+        "command": "copilot-plus-plus.generatePRDescription",
+        "title": "Generate PR Description",
+        "icon": "$(code)",
+        "category": "Copilot++"
+      },
+      {
         "command": "copilot-plus-plus.reviewPrChanges",
         "title": "Review PR Changes",
-        "icon": "$(search-view-icon)",
+        "icon": "$(code)",
         "category": "Copilot++"
       }
     ],
@@ -68,6 +74,10 @@
       "commandPalette": [
         {
           "command": "copilot-plus-plus.reviewPrChanges",
+          "when": "git.state == initialized"
+        },
+        {
+          "command": "copilot-plus-plus.generatePRDescription",
           "when": "git.state == initialized"
         }
       ]
