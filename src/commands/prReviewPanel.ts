@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { GitService } from '../services/gitService';
 import { CopilotService } from '../services/copilotService';
+import { ConfigService } from '../services/configService';
 
 export class PrReviewPanel {
   public static currentPanel: PrReviewPanel | undefined;
@@ -55,18 +56,20 @@ export class PrReviewPanel {
             const branches = await this._gitService.getAvailableBranches();
             const currentBranch = await this._gitService.getCurrentBranch();
             const defaultTargetBranch = this._gitService.getDefaultTargetBranch();
+            const languageModel = ConfigService.getLanguageModelFamily();
 
             this._panel.webview.postMessage({
               command: 'branchesList',
               branches,
               currentBranch,
               defaultTargetBranch,
+              languageModel,
             });
             break;
 
           case 'reviewPr':
             try {
-              await this.reviewPr(message.sourceBranch, message.targetBranch);
+              await this.reviewPr(message.sourceBranch, message.targetBranch, message.modelFamily);
             } catch (error) {
               this._panel.webview.postMessage({
                 command: 'error',
@@ -89,7 +92,7 @@ export class PrReviewPanel {
     );
   }
 
-  private async reviewPr(sourceBranch: string, targetBranch: string) {
+  private async reviewPr(sourceBranch: string, targetBranch: string, modelFamily?: string) {
     try {
       this._panel.webview.postMessage({ command: 'startLoading' });
 
@@ -114,7 +117,7 @@ export class PrReviewPanel {
         detailedDiff,
       };
 
-      const result = await this._copilotService.reviewPrChanges(prContext);
+      const result = await this._copilotService.reviewPrChanges(prContext, modelFamily);
 
       // Process review results to enhance navigation
       const enhancedResult = this.enhanceReviewResults(result, detailedDiff);
