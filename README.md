@@ -108,6 +108,12 @@ You can customize the extension's behavior through the following settings:
 
 ## Release Notes
 
+### 0.0.10 (2025-03-15)
+- Enhanced configuration options for PR review customization
+- Improved prompt generation for more accurate results
+- Added testing gap detection in PR reviews
+- Bug fixes and performance optimizations
+
 ### 0.0.5
 - Add PR Review Assistance feature
 - Improve PR description generation
