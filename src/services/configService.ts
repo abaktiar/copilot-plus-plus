@@ -27,6 +27,8 @@ export interface PrReviewConfig {
   severityLevels: string[];
   includeLogicalErrors: boolean;
   includeTestingGaps: boolean;
+  maxTokensPerGroup: number;
+  enableDebugLogging: boolean;
 }
 
 export interface BreakingChangesConfig {
@@ -78,6 +80,8 @@ export class ConfigService {
       severityLevels: config.get<string[]>('prReview.severityLevels') || ['Critical', 'High', 'Medium', 'Low'],
       includeLogicalErrors: config.get<boolean>('prReview.includeLogicalErrors') ?? true,
       includeTestingGaps: config.get<boolean>('prReview.includeTestingGaps') ?? true,
+      maxTokensPerGroup: config.get<number>('prReview.maxTokensPerGroup') ?? 6000,
+      enableDebugLogging: config.get<boolean>('prReview.enableDebugLogging') ?? false,
     };
   }
 

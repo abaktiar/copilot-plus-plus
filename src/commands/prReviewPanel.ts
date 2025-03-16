@@ -3,6 +3,8 @@ import * as path from 'path';
 import { GitService } from '../services/gitService';
 import { CopilotService } from '../services/copilotService';
 import { ConfigService } from '../services/configService';
+import { PrReviewService } from '../services/prReview/prReviewService';
+import { ReviewProgressUpdate } from '../services/prReview/reviewQueueManager';
 
 export class PrReviewPanel {
   public static currentPanel: PrReviewPanel | undefined;
@@ -11,6 +13,7 @@ export class PrReviewPanel {
   private _disposables: vscode.Disposable[] = [];
   private readonly _gitService: GitService;
   private readonly _copilotService: CopilotService;
+  private readonly _prReviewService: PrReviewService;
 
   public static createOrShow(extensionUri: vscode.Uri) {
     const column = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
@@ -45,6 +48,7 @@ export class PrReviewPanel {
     this._extensionUri = extensionUri;
     this._gitService = new GitService();
     this._copilotService = new CopilotService();
+    this._prReviewService = new PrReviewService();
 
     // Set the webview's initial html content
     this._update();
@@ -100,35 +104,31 @@ export class PrReviewPanel {
     try {
       this._panel.webview.postMessage({ command: 'startLoading' });
 
-      // Get diff data with enhanced line information
-      const [commits, diff, files, detailedDiff] = await Promise.all([
+      // Use the enhanced PR review service
+      const result = await this._prReviewService.reviewPrChanges(
+        sourceBranch,
+        targetBranch,
+        modelFamily,
+        this.handleProgressUpdate.bind(this)
+      );
+
+      // Process review results to enhance navigation
+      const [_, __, ___, detailedDiff] = await Promise.all([
         this._gitService.getCommitsBetweenBranches(sourceBranch, targetBranch),
         this._gitService.getDiffBetweenBranches(sourceBranch, targetBranch),
         this._gitService.getFilesBetweenBranches(sourceBranch, targetBranch),
         this._gitService.getDetailedDiffBetweenBranches(sourceBranch, targetBranch),
       ]);
 
-      if (!commits.length && !files.length) {
-        throw new Error('No changes detected between the selected branches');
-      }
-
-      const prContext = {
-        sourceBranch,
-        targetBranch,
-        commits,
-        diff,
-        files,
-        detailedDiff,
-      };
-
-      const result = await this._copilotService.reviewPrChanges(prContext, modelFamily);
-
-      // Process review results to enhance navigation
       const enhancedResult = this.enhanceReviewResults(result, detailedDiff);
+
+      // Generate a unique key for this PR review
+      const reviewKey = `${sourceBranch}:${targetBranch}`;
 
       this._panel.webview.postMessage({
         command: 'reviewComplete',
         result: enhancedResult,
+        reviewKey,
       });
     } catch (error) {
       console.error('PR review failed:', error);
@@ -137,6 +137,21 @@ export class PrReviewPanel {
         message: error instanceof Error ? error.message : String(error),
       });
     }
+  }
+
+  /**
+   * Handle progress updates from the PR review service
+   */
+  private handleProgressUpdate(update: ReviewProgressUpdate): void {
+    // Send progress update to the webview
+    this._panel.webview.postMessage({
+      command: 'progressUpdate',
+      update: {
+        completed: update.completedCount,
+        total: update.totalCount,
+        currentFile: update.currentlyProcessing,
+      },
+    });
   }
 
   /**
@@ -331,12 +346,12 @@ export class PrReviewPanel {
     const markedUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this._extensionUri, 'media', 'lib', 'marked-4.0.0.min.js')
     );
-     const modelConfigUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'modelConfig.js'));
+    const modelConfigUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'modelConfig.js'));
 
-     // Use a nonce to only allow specific scripts to be run
-     const nonce = getNonce();
+    // Use a nonce to only allow specific scripts to be run
+    const nonce = getNonce();
 
-     return `<!DOCTYPE html>
+    return `<!DOCTYPE html>
             <html lang="en">
             <head>
                 <meta charset="UTF-8">

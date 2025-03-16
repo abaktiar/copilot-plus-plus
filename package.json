@@ -234,6 +234,16 @@
           "default": true,
           "description": "Identify missing or inadequate test coverage during PR reviews"
         },
+        "copilotPlusPlus.prReview.maxTokensPerGroup": {
+          "type": "number",
+          "default": 6000,
+          "description": "Maximum tokens per file group when processing large PRs. Higher values process more files together but require more capable models. Recommended values: 6000-8000 for GPT-4o-mini, 16000-32000 for GPT-4o/Claude, up to 64000 for latest models."
+        },
+        "copilotPlusPlus.prReview.enableDebugLogging": {
+          "type": "boolean",
+          "default": false,
+          "description": "When enabled, saves debug logs for LLM requests and responses when errors occur. Useful for troubleshooting JSON parsing issues."
+        },
         "copilotPlusPlus.ignoredFilePatterns": {
           "type": "array",
           "items": {

@@ -70,7 +70,6 @@
       ),
   };
 
-
   function formatIssueAsMarkdown(issue) {
     const severityEmoji = severityEmojis[issue.severity] || '📝';
     const categoryEmoji = categoryEmojis[issue.category] || categoryEmojis['Other'];
@@ -173,18 +172,74 @@
     return markdown;
   }
 
+  // Add a new ProgressIndicator component
+  function ProgressIndicator({ progress }) {
+    if (!progress) return null;
+
+    const { completed, total, currentFile } = progress;
+    const percent = Math.floor((completed / total) * 100);
+
+    return e(
+      'div',
+      { className: 'progress-container' },
+      e(
+        'div',
+        { className: 'progress-header' },
+        e('span', {}, `Processing ${completed} of ${total} file groups (${percent}%)`)
+      ),
+      e(
+        'div',
+        { className: 'progress-bar-container' },
+        e('div', {
+          className: 'progress-bar',
+          style: { width: `${percent}%` },
+        })
+      ),
+      currentFile &&
+        e('div', { className: 'progress-current-file' }, e('span', {}, `Currently processing: ${currentFile}`))
+    );
+  }
+
   function App() {
     const [branches, setBranches] = React.useState([]);
     const [currentBranch, setCurrentBranch] = React.useState('');
     const [sourceBranch, setSourceBranch] = React.useState('');
     const [targetBranch, setTargetBranch] = React.useState('');
-    const [selectedModel, setSelectedModel] = React.useState('gpt-4o');
-    const [reviewResult, setReviewResult] = React.useState(null);
     const [isLoading, setIsLoading] = React.useState(false);
+    const [reviewResult, setReviewResult] = React.useState(null);
     const [error, setError] = React.useState(null);
+    const [selectedModel, setSelectedModel] = React.useState('');
+    const [progress, setProgress] = React.useState(null);
+    const [isSummaryCollapsed, setIsSummaryCollapsed] = React.useState(false);
+    const [isCopied, setIsCopied] = React.useState(false);
+
+    // New state for filtering and tracking
+    const [searchQuery, setSearchQuery] = React.useState('');
+    const [severityFilter, setSeverityFilter] = React.useState('All');
+    const [categoryFilter, setCategoryFilter] = React.useState('All');
+    const [reviewedIssues, setReviewedIssues] = React.useState(new Set());
+    const [showReviewed, setShowReviewed] = React.useState(false);
+    const [currentReviewKey, setCurrentReviewKey] = React.useState('');
 
     // Get models from shared config
     const models = window.sharedModelConfig?.models || [];
+
+    // Load saved reviewed issues from storage when review is complete
+    React.useEffect(() => {
+      if (currentReviewKey && reviewResult) {
+        try {
+          // Try to load saved reviewed issues from storage
+          const savedState = vscode.getState() || {};
+          const savedReviewed = savedState[currentReviewKey] || [];
+
+          if (savedReviewed.length > 0) {
+            setReviewedIssues(new Set(savedReviewed));
+          }
+        } catch (e) {
+          console.error('Failed to load saved review state:', e);
+        }
+      }
+    }, [currentReviewKey, reviewResult]);
 
     React.useEffect(() => {
       // Request branches when component mounts
@@ -218,18 +273,37 @@
           case 'startLoading':
             setIsLoading(true);
             setError(null);
+            setProgress(null);
+            // Reset filters and reviewed issues when starting a new review
+            setSearchQuery('');
+            setSeverityFilter('All');
+            setCategoryFilter('All');
+            setReviewedIssues(new Set());
+            setShowReviewed(false);
+            setCurrentReviewKey('');
+            break;
+
+          case 'progressUpdate':
+            setProgress(message.update);
             break;
 
           case 'reviewComplete':
             setIsLoading(false);
             setReviewResult(message.result);
             setError(null);
+            setProgress(null);
+
+            // Set the review key for persistence
+            if (message.reviewKey) {
+              setCurrentReviewKey(message.reviewKey);
+            }
             break;
 
           case 'error':
             setIsLoading(false);
             setError(message.message);
             setReviewResult(null);
+            setProgress(null);
             break;
         }
       };
@@ -254,44 +328,127 @@
       });
     };
 
+    // Handle marking an issue as reviewed
+    const handleMarkAsReviewed = (issue) => {
+      const issueId = `${issue.filePath}:${issue.severity}:${issue.description}`;
+      const newReviewedIssues = new Set(reviewedIssues);
+
+      if (newReviewedIssues.has(issueId)) {
+        newReviewedIssues.delete(issueId);
+      } else {
+        newReviewedIssues.add(issueId);
+      }
+
+      setReviewedIssues(newReviewedIssues);
+
+      // Save to storage if we have a review key
+      if (currentReviewKey) {
+        try {
+          const savedState = vscode.getState() || {};
+          savedState[currentReviewKey] = Array.from(newReviewedIssues);
+          vscode.setState(savedState);
+        } catch (e) {
+          console.error('Failed to save review state:', e);
+        }
+      }
+    };
+
+    // Calculate issue statistics for the dashboard
+    const calculateStats = () => {
+      if (!reviewResult || !reviewResult.issues) return null;
+
+      const stats = {
+        total: reviewResult.issues.length,
+        reviewed: reviewedIssues.size,
+        pending: reviewResult.issues.length - reviewedIssues.size,
+        bySeverity: {
+          Critical: 0,
+          High: 0,
+          Medium: 0,
+          Low: 0,
+        },
+        byCategory: {},
+      };
+
+      reviewResult.issues.forEach((issue) => {
+        // Count by severity
+        if (stats.bySeverity.hasOwnProperty(issue.severity)) {
+          stats.bySeverity[issue.severity]++;
+        }
+
+        // Count by category
+        if (!stats.byCategory[issue.category]) {
+          stats.byCategory[issue.category] = 0;
+        }
+        stats.byCategory[issue.category]++;
+      });
+
+      return stats;
+    };
+
+    const handleCopyMarkdown = (event) => {
+      const markdown = formatReviewAsMarkdown(reviewResult);
+      navigator.clipboard.writeText(markdown);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    };
+
     return e(
       'div',
       { className: 'container' },
-      e('h1', null, 'PR Review Assistant'),
       e(
         'div',
-        { className: 'branches-form' },
+        { className: 'form-container' },
         e(
-          'h2',
-          null,
+          'div',
+          { className: 'header-row' },
+          e('h2', {}, 'PR Review Assistant'),
           e(
             'div',
-            { style: { display: 'flex', alignItems: 'center', gap: '8px' } },
-            e(Icons.Branch),
-            'Select branches to compare'
+            { className: 'model-selector' },
+            e('label', { htmlFor: 'modelSelect' }, 'Model:'),
+            e(
+              'select',
+              {
+                id: 'modelSelect',
+                value: selectedModel,
+                onChange: (e) => setSelectedModel(e.target.value),
+              },
+              models.map((model) => e('option', { key: model.id, value: model.id }, model.name))
+            )
           )
         ),
         e(
           'div',
-          { className: 'form-row' },
+          { className: 'branches-row' },
           e(
             'div',
-            { className: 'form-column' },
-            e('label', { htmlFor: 'sourceBranch' }, 'Source Branch (PR branch)'),
+            { className: 'branch-selector' },
+            e('label', { htmlFor: 'sourceBranch' }, 'Source Branch (with changes):'),
             e(
               'select',
               {
                 id: 'sourceBranch',
                 value: sourceBranch,
                 onChange: (e) => setSourceBranch(e.target.value),
+                disabled: isLoading,
               },
-              branches.map((branch) => e('option', { key: branch, value: branch }, branch))
+              branches.map((branch) =>
+                e(
+                  'option',
+                  {
+                    key: branch,
+                    value: branch,
+                  },
+                  branch + (branch === currentBranch ? ' (current)' : '')
+                )
+              )
             )
           ),
           e(
             'div',
-            { className: 'form-column' },
-            e('label', { htmlFor: 'targetBranch' }, 'Target Branch (base branch)'),
+            { className: 'branch-selector' },
+            e('label', { htmlFor: 'targetBranch' }, 'Target Branch (base branch):'),
             e(
               'select',
               {
@@ -305,36 +462,331 @@
         ),
         e(
           'div',
-          { className: 'form-column model-selector' },
-          e('label', { htmlFor: 'modelSelect' }, 'Language Model'),
+          { className: 'button-container' },
+          e(
+            'button',
+            {
+              onClick: handleReview,
+              disabled: isLoading,
+              className: 'review-pr-button',
+            },
+            isLoading ? 'Reviewing...' : 'Review PR Changes'
+          )
+        )
+      ),
+
+      // Add the progress indicator
+      isLoading && progress && e(ProgressIndicator, { progress }),
+
+      // Loading indicator
+      isLoading && !progress && e('div', { className: 'loading' }, 'Analyzing PR changes...'),
+
+      // Error message
+      error && e('div', { className: 'error' }, error),
+
+      // Review results with new dashboard, filters, and issue tracking
+      !isLoading &&
+        !error &&
+        reviewResult &&
+        e(
+          React.Fragment,
+          null,
+          e(ReviewDashboard, { stats: calculateStats() }),
+          e(
+            'div',
+            { className: 'summary-container' },
+            e(
+              'div',
+              {
+                className: 'summary-toggle',
+                onClick: () => setIsSummaryCollapsed(!isSummaryCollapsed),
+              },
+              e('h2', null, 'Review Summary'),
+              e('span', { className: 'toggle-icon' }, isSummaryCollapsed ? '▶' : '▼')
+            ),
+            !isSummaryCollapsed &&
+              e(
+                'div',
+                { className: 'pr-summary' },
+                e(
+                  'div',
+                  { className: 'summary-header' },
+                  e(
+                    'button',
+                    {
+                      className: 'copy-markdown-button',
+                      onClick: handleCopyMarkdown,
+                      title: 'Copy all review',
+                    },
+                    isCopied ? e(Icons.Check) : e(Icons.Copy),
+                    isCopied ? 'Copied!' : 'Copy All Review'
+                  )
+                ),
+                e(SummarySection, {
+                  title: 'Overall Assessment',
+                  content: reviewResult.summary.assessment,
+                }),
+                e(SummarySection, {
+                  title: 'Key Strengths',
+                  items: reviewResult.summary.strengths,
+                  className: 'key-strengths',
+                }),
+                reviewResult.summary.criticalIssues.length > 0 &&
+                  e(SummarySection, {
+                    title: 'Critical Issues to Address',
+                    items: reviewResult.summary.criticalIssues,
+                    className: 'critical-issues',
+                  }),
+                e(SummarySection, {
+                  title: 'Recommendations',
+                  items: reviewResult.summary.recommendations,
+                })
+              )
+          ),
+          e(
+            'div',
+            { className: 'issues-section' },
+            e('h2', { className: 'issues-heading' }, 'Issues'),
+            e(FilterBar, {
+              searchQuery,
+              setSearchQuery,
+              severityFilter,
+              setSeverityFilter,
+              categoryFilter,
+              setCategoryFilter,
+              showReviewed,
+              setShowReviewed,
+              reviewResult,
+            }),
+            e(ReviewResults, {
+              result: reviewResult,
+              searchQuery,
+              severityFilter,
+              categoryFilter,
+              reviewedIssues,
+              handleMarkAsReviewed,
+              showReviewed,
+            })
+          )
+        )
+    );
+  }
+
+  // New component for the dashboard
+  function ReviewDashboard({ stats }) {
+    if (!stats) return null;
+
+    // Calculate percentages for the severity chart
+    const severityPercentages = React.useMemo(() => {
+      if (!stats.total) return [];
+
+      return Object.entries(stats.bySeverity).map(([severity, count]) => ({
+        severity,
+        count,
+        percentage: (count / stats.total) * 100,
+      }));
+    }, [stats]);
+
+    return e(
+      'div',
+      { className: 'dashboard' },
+      e(
+        'div',
+        { className: 'dashboard-section' },
+        e('h3', {}, 'Review Progress'),
+        e(
+          'div',
+          { className: 'progress-stats' },
+          e(
+            'div',
+            { className: 'stat-item' },
+            e('span', { className: 'stat-label' }, 'Total Issues'),
+            e('span', { className: 'stat-value' }, stats.total)
+          ),
+          e(
+            'div',
+            { className: 'stat-item' },
+            e('span', { className: 'stat-label' }, 'Reviewed'),
+            e('span', { className: 'stat-value' }, stats.reviewed)
+          ),
+          e(
+            'div',
+            { className: 'stat-item' },
+            e('span', { className: 'stat-label' }, 'Pending'),
+            e('span', { className: 'stat-value' }, stats.pending)
+          ),
+          e(
+            'div',
+            { className: 'progress-bar-container dashboard-progress' },
+            e('div', {
+              className: 'progress-bar',
+              style: { width: `${stats.total > 0 ? (stats.reviewed / stats.total) * 100 : 0}%` },
+            })
+          )
+        )
+      ),
+      e(
+        'div',
+        { className: 'dashboard-section' },
+        e('h3', {}, 'Issues by Severity'),
+        e(
+          'div',
+          { className: 'severity-chart' },
+          severityPercentages.length > 0 &&
+            e(
+              'div',
+              { className: 'stacked-bar' },
+              severityPercentages.map(({ severity, percentage }) =>
+                e('div', {
+                  key: severity,
+                  className: `severity-bar severity-${severity.toLowerCase()}`,
+                  style: { width: `${percentage}%` },
+                  title: `${severity}: ${Math.round(percentage)}%`,
+                })
+              )
+            )
+        ),
+        e(
+          'div',
+          { className: 'severity-stats' },
+          Object.entries(stats.bySeverity).map(([severity, count]) =>
+            e(
+              'div',
+              {
+                key: severity,
+                className: `stat-item severity-stat severity-${severity.toLowerCase()}`,
+              },
+              e('span', { className: 'stat-label' }, e('span', { className: 'severity-dot' }), severity),
+              e('span', { className: 'stat-value' }, count)
+            )
+          )
+        )
+      ),
+      e(
+        'div',
+        { className: 'dashboard-section' },
+        e('h3', {}, 'Issues by Category'),
+        e(
+          'div',
+          { className: 'category-stats' },
+          Object.entries(stats.byCategory)
+            .sort((a, b) => b[1] - a[1]) // Sort by count descending
+            .map(([category, count]) =>
+              e(
+                'div',
+                {
+                  key: category,
+                  className: 'stat-item category-stat',
+                },
+                e(
+                  'span',
+                  { className: 'stat-label' },
+                  e('span', {}, categoryEmojis[category] || categoryEmojis['Other']),
+                  ' ',
+                  category
+                ),
+                e('span', { className: 'stat-value' }, count)
+              )
+            )
+        )
+      )
+    );
+  }
+
+  // New component for filters and search
+  function FilterBar({
+    searchQuery,
+    setSearchQuery,
+    severityFilter,
+    setSeverityFilter,
+    categoryFilter,
+    setCategoryFilter,
+    showReviewed,
+    setShowReviewed,
+    reviewResult,
+  }) {
+    // Extract all unique categories from issues
+    const categories = React.useMemo(() => {
+      if (!reviewResult || !reviewResult.issues) return [];
+
+      const uniqueCategories = new Set();
+      reviewResult.issues.forEach((issue) => {
+        if (issue.category) {
+          uniqueCategories.add(issue.category);
+        }
+      });
+
+      return ['All', ...Array.from(uniqueCategories)];
+    }, [reviewResult]);
+
+    return e(
+      'div',
+      { className: 'filter-bar' },
+      e(
+        'div',
+        { className: 'search-container' },
+        e('input', {
+          type: 'text',
+          placeholder: 'Search issues...',
+          value: searchQuery,
+          onChange: (e) => setSearchQuery(e.target.value),
+          className: 'search-input',
+        })
+      ),
+      e(
+        'div',
+        { className: 'filter-container' },
+        e(
+          'div',
+          { className: 'filter-group' },
+          e('label', { htmlFor: 'severityFilter' }, 'Severity:'),
           e(
             'select',
             {
-              id: 'modelSelect',
-              value: selectedModel,
-              onChange: (e) => setSelectedModel(e.target.value),
+              id: 'severityFilter',
+              value: severityFilter,
+              onChange: (e) => setSeverityFilter(e.target.value),
+              className: 'filter-select',
             },
-            models.map((model) => e('option', { key: model.id, value: model.id }, model.name))
+            e('option', { value: 'All' }, 'All Severities'),
+            e('option', { value: 'Critical' }, 'Critical'),
+            e('option', { value: 'High' }, 'High'),
+            e('option', { value: 'Medium' }, 'Medium'),
+            e('option', { value: 'Low' }, 'Low')
           )
         ),
         e(
-          'button',
-          {
-            onClick: handleReview,
-            disabled: isLoading,
-          },
-          isLoading ? 'Reviewing...' : 'Review PR Changes'
-        )
-      ),
-      error && e('div', { className: 'error-message' }, e('h3', null, 'Error'), e('p', null, error)),
-      isLoading &&
+          'div',
+          { className: 'filter-group' },
+          e('label', { htmlFor: 'categoryFilter' }, 'Category:'),
+          e(
+            'select',
+            {
+              id: 'categoryFilter',
+              value: categoryFilter,
+              onChange: (e) => setCategoryFilter(e.target.value),
+              className: 'filter-select',
+            },
+            categories.map((category) => e('option', { key: category, value: category }, category))
+          )
+        ),
         e(
           'div',
-          { className: 'loading' },
-          e('div', { className: 'loading-spinner' }),
-          e('p', null, 'Analyzing code changes...')
-        ),
-      !isLoading && reviewResult && e(ReviewResults, { result: reviewResult })
+          { className: 'filter-group' },
+          e('label', { htmlFor: 'statusFilter' }, 'Status:'),
+          e(
+            'select',
+            {
+              id: 'statusFilter',
+              value: showReviewed ? 'reviewed' : 'pending',
+              onChange: (e) => setShowReviewed(e.target.value === 'reviewed'),
+              className: 'filter-select',
+            },
+            e('option', { value: 'pending' }, 'Pending'),
+            e('option', { value: 'reviewed' }, 'Done')
+          )
+        )
+      )
     );
   }
 
@@ -355,68 +807,145 @@
     Other: '📝',
   };
 
-  function ReviewResults({ result }) {
-    const [isCopied, setIsCopied] = React.useState(false);
-    const handleCopyMarkdown = (event) => {
-      const markdown = formatReviewAsMarkdown(result);
-      navigator.clipboard.writeText(markdown);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
-    };
+  function ReviewResults({
+    result,
+    searchQuery,
+    severityFilter,
+    categoryFilter,
+    reviewedIssues,
+    handleMarkAsReviewed,
+    showReviewed,
+  }) {
+    const [focusedIssueIndex, setFocusedIssueIndex] = React.useState(-1);
+
+    // Filter issues based on search query and filters
+    const filteredIssues = React.useMemo(() => {
+      if (!result.issues) return [];
+
+      return result.issues.filter((issue) => {
+        // Check if the issue is reviewed or pending based on the toggle
+        const issueId = `${issue.filePath}:${issue.severity}:${issue.description}`;
+        const isReviewed = reviewedIssues.has(issueId);
+
+        if (showReviewed !== isReviewed) {
+          return false;
+        }
+
+        // Apply severity filter
+        if (severityFilter !== 'All' && issue.severity !== severityFilter) {
+          return false;
+        }
+
+        // Apply category filter
+        if (categoryFilter !== 'All' && issue.category !== categoryFilter) {
+          return false;
+        }
+
+        // Apply search query
+        if (searchQuery) {
+          const searchLower = searchQuery.toLowerCase();
+          return (
+            (issue.description && issue.description.toLowerCase().includes(searchLower)) ||
+            (issue.filePath && issue.filePath.toLowerCase().includes(searchLower)) ||
+            (issue.suggestion && issue.suggestion.toLowerCase().includes(searchLower)) ||
+            (issue.category && issue.category.toLowerCase().includes(searchLower))
+          );
+        }
+
+        return true;
+      });
+    }, [result.issues, searchQuery, severityFilter, categoryFilter, reviewedIssues, showReviewed]);
+
+    // Add keyboard navigation
+    React.useEffect(() => {
+      const handleKeyDown = (e) => {
+        // Only handle keyboard shortcuts when issues are visible
+        if (filteredIssues.length === 0) return;
+
+        switch (e.key) {
+          case 'k': // Next issue
+            setFocusedIssueIndex((prev) => (prev < filteredIssues.length - 1 ? prev + 1 : prev));
+            break;
+          case 'j': // Previous issue
+            setFocusedIssueIndex((prev) => (prev > 0 ? prev - 1 : prev));
+            break;
+          case 'd': // Mark/unmark as done
+            if (focusedIssueIndex >= 0 && focusedIssueIndex < filteredIssues.length) {
+              handleMarkAsReviewed(filteredIssues[focusedIssueIndex]);
+            }
+            break;
+          case 'f': // Navigate to file
+            if (focusedIssueIndex >= 0 && focusedIssueIndex < filteredIssues.length) {
+              const issue = filteredIssues[focusedIssueIndex];
+              vscode.postMessage({
+                command: 'navigateToFile',
+                filePath: issue.filePath,
+                lineNumber: issue.lineNumber,
+                codeContext: issue.lineContext?.codeSnippet,
+              });
+            }
+            break;
+        }
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [filteredIssues, focusedIssueIndex, handleMarkAsReviewed]);
+
+    // Reset focused issue when filtered issues change
+    React.useEffect(() => {
+      setFocusedIssueIndex(filteredIssues.length > 0 ? 0 : -1);
+    }, [filteredIssues.length]);
 
     return e(
       'div',
       null,
       e(
         'div',
-        { className: 'pr-summary' },
-        e(
-          'div',
-          { className: 'summary-header' },
-          e('h2', null, 'Review Summary'),
+        { className: 'filtered-count' },
+        e('span', {}, `Showing ${filteredIssues.length} ${showReviewed ? 'done' : 'pending'} issues`),
+        filteredIssues.length > 0 &&
           e(
-            'button',
-            {
-              className: 'copy-markdown-button',
-              onClick: handleCopyMarkdown,
-              title: 'Copy all review',
-            },
-            isCopied ? e(Icons.Check) : e(Icons.Copy),
-            isCopied ? 'Copied!' : 'Copy All Review'
+            'div',
+            { className: 'keyboard-shortcuts' },
+            e('span', {}, 'Keyboard shortcuts: '),
+            e('kbd', {}, 'j'),
+            e('span', {}, ' previous, '),
+            e('kbd', {}, 'k'),
+            e('span', {}, ' next, '),
+            e('kbd', {}, 'd'),
+            e('span', {}, ' mark as done, '),
+            e('kbd', {}, 'f'),
+            e('span', {}, ' go to file')
           )
-        ),
-        e(SummarySection, {
-          title: 'Overall Assessment',
-          content: result.summary.assessment,
-        }),
-        e(SummarySection, {
-          title: 'Key Strengths',
-          items: result.summary.strengths,
-          className: 'key-strengths',
-        }),
-        result.summary.criticalIssues.length > 0 &&
-          e(SummarySection, {
-            title: 'Critical Issues to Address',
-            items: result.summary.criticalIssues,
-            className: 'critical-issues',
-          }),
-        e(SummarySection, {
-          title: 'Recommendations',
-          items: result.summary.recommendations,
-        })
       ),
-      result.issues && result.issues.length > 0
-        ? e(IssuesList, { issues: result.issues })
+
+      filteredIssues.length > 0
+        ? e(IssuesList, {
+            issues: filteredIssues,
+            reviewedIssues,
+            handleMarkAsReviewed,
+            focusedIssueIndex,
+            setFocusedIssueIndex,
+          })
         : e(
             'div',
             { className: 'no-issues' },
-            e('h3', null, 'No Issues Found'),
-            e('p', null, 'Great job! The code review found no significant issues.')
+            e('h3', null, showReviewed ? 'No Done Issues' : 'No Pending Issues'),
+            e(
+              'p',
+              null,
+              showReviewed
+                ? "You haven't marked any issues as done yet."
+                : searchQuery || severityFilter !== 'All' || categoryFilter !== 'All'
+                ? 'No issues match the current filters.'
+                : 'Great job! The code review found no significant issues.'
+            )
           )
     );
   }
 
-  function IssuesList({ issues }) {
+  function IssuesList({ issues, reviewedIssues, handleMarkAsReviewed, focusedIssueIndex, setFocusedIssueIndex }) {
     const severityOrder = ['Critical', 'High', 'Medium', 'Low'];
     const issuesBySeverity = {};
 
@@ -424,10 +953,14 @@
       issuesBySeverity[severity] = issues.filter((issue) => issue.severity.toLowerCase() === severity.toLowerCase());
     });
 
+    // Create a flat list of issues for keyboard navigation
+    const flatIssuesList = React.useMemo(() => {
+      return severityOrder.flatMap((severity) => issuesBySeverity[severity] || []);
+    }, [issues]);
+
     return e(
       'div',
       { className: 'issues-container' },
-      e('h2', null, `Detailed Issues (${issues.length})`),
       severityOrder.map((severity) => {
         const severityIssues = issuesBySeverity[severity];
         return (
@@ -440,21 +973,39 @@
               className: 'severity-group',
             },
             e('h3', null, `${severity} Severity Issues (${severityIssues.length})`),
-            severityIssues.map((issue, index) =>
-              e(IssueDetails, {
+            severityIssues.map((issue, index) => {
+              // Calculate the global index for this issue in the flat list
+              const globalIndex = flatIssuesList.findIndex(
+                (i) =>
+                  i.filePath === issue.filePath && i.severity === issue.severity && i.description === issue.description
+              );
+
+              return e(IssueDetails, {
                 key: `${severity}-${index}`,
                 issue: issue,
-              })
-            )
+                isReviewed: reviewedIssues.has(`${issue.filePath}:${issue.severity}:${issue.description}`),
+                onMarkAsReviewed: () => handleMarkAsReviewed(issue),
+                isFocused: globalIndex === focusedIssueIndex,
+                onFocus: () => setFocusedIssueIndex(globalIndex),
+              });
+            })
           )
         );
       })
     );
   }
 
-  function IssueDetails({ issue }) {
+  function IssueDetails({ issue, isReviewed, onMarkAsReviewed, isFocused, onFocus }) {
     const [isCopied, setIsCopied] = React.useState(false);
     const [isCodeCopied, setIsCodeCopied] = React.useState(false);
+    const issueRef = React.useRef(null);
+
+    // Scroll into view when focused
+    React.useEffect(() => {
+      if (isFocused && issueRef.current) {
+        issueRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }, [isFocused]);
 
     const handleClick = () => {
       vscode.postMessage({
@@ -480,7 +1031,13 @@
 
     return e(
       'div',
-      { className: `issue issue-${issue.severity.toLowerCase()}` },
+      {
+        className: `issue issue-${issue.severity.toLowerCase()} ${isReviewed ? 'issue-reviewed' : ''} ${
+          isFocused ? 'issue-focused' : ''
+        }`,
+        ref: issueRef,
+        onClick: onFocus,
+      },
       e(
         'div',
         { className: 'issue-header' },
@@ -497,14 +1054,27 @@
           e('span', { className: 'issue-category' }, issue.category)
         ),
         e(
-          'button',
-          {
-            className: `copy-issue-button ${isCopied ? 'copied' : ''}`,
-            onClick: handleCopyIssue,
-            title: 'Copy issue as markdown',
-          },
-          isCopied ? e(Icons.Check) : e(Icons.Copy),
-          isCopied ? 'Copied!' : 'Copy Issue'
+          'div',
+          { className: 'issue-actions' },
+          e(
+            'button',
+            {
+              className: `review-button ${isReviewed ? 'reviewed' : ''}`,
+              onClick: onMarkAsReviewed,
+              title: isReviewed ? 'Mark as pending' : 'Mark as done',
+            },
+            isReviewed ? 'Done ✓' : 'Mark as Done'
+          ),
+          e(
+            'button',
+            {
+              className: `copy-issue-button ${isCopied ? 'copied' : ''}`,
+              onClick: handleCopyIssue,
+              title: 'Copy issue as markdown',
+            },
+            isCopied ? e(Icons.Check) : e(Icons.Copy),
+            isCopied ? 'Copied!' : 'Copy Issue'
+          )
         )
       ),
       e('div', { className: 'issue-description' }, issue.description),
