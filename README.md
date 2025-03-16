@@ -136,9 +136,9 @@ You can customize the extension's behavior through the following settings:
    ```bash
    pnpm install
    ```
-3. Run the extension in debug mode:
+3. Run the extension in development mode:
    ```bash
-   pnpm run debug
+   pnpm run dev
    ```
 
 ## Release Notes
