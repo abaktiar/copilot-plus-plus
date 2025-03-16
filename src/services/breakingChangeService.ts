@@ -261,67 +261,172 @@ export class BreakingChangeService {
   }
 
   /**
-   * Find usages of changed code
+   * Find all usages/references of changed code across the codebase
+   * @param codeChanges Array of code changes to find usages for. Each change contains information about modified code including file path, line number, and symbol details
+   * @returns Array of CodeUsage objects containing information about where the changed code is used:
+   * - filePath: Relative path to the file containing the usage
+   * - lineNumber: Line number where the usage occurs (1-based)
+   * - codeSnippet: The line of code containing the usage
+   * - symbolName: Name of the symbol being referenced
+   *
+   * This method:
+   * 1. Filters code changes to only process those with symbol information
+   * 2. For each change, uses VS Code's reference provider to find all references
+   * 3. Processes each reference to extract usage details
+   * 4. Skips self-references (usage in same file at same line as change)
+   * 5. Returns consolidated list of all usages found
    */
   private async findCodeUsages(codeChanges: CodeChange[]): Promise<CodeUsage[]> {
     this.log('Finding usages of changed code');
     const usages: CodeUsage[] = [];
+    const BATCH_SIZE = 10; // Process changes in batches of 10
 
     // Filter changes to only include those with symbol information
     const changesWithSymbols = codeChanges.filter((change) => change.symbolName);
 
-    for (const change of changesWithSymbols) {
-      try {
-        if (!change.symbolName) {
-          continue;
-        }
+    this.log(`Processing ${changesWithSymbols.length} code changes with symbols in batches of ${BATCH_SIZE}`);
 
-        const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
-        if (!workspaceRoot) {
-          continue;
-        }
+    // Process changes in batches
+    for (let i = 0; i < changesWithSymbols.length; i += BATCH_SIZE) {
+      const batch = changesWithSymbols.slice(i, i + BATCH_SIZE);
+      this.log(
+        `Processing batch ${Math.floor(i / BATCH_SIZE) + 1} of ${Math.ceil(changesWithSymbols.length / BATCH_SIZE)}`
+      );
 
-        const fullPath = path.join(workspaceRoot, change.filePath);
-        const uri = vscode.Uri.file(fullPath);
+      // Process each batch in parallel
+      const batchResults = await Promise.all(batch.map((change) => this.findUsagesForChange(change)));
 
-        // Find references to this symbol
-        const references = await vscode.commands.executeCommand<vscode.Location[]>(
-          'vscode.executeReferenceProvider',
-          uri,
-          new vscode.Position(change.lineNumber - 1, 0)
-        );
-
-        if (references && references.length > 0) {
-          for (const reference of references) {
-            // Skip self-references
-            if (reference.uri.fsPath === uri.fsPath && reference.range.start.line === change.lineNumber - 1) {
-              continue;
-            }
-
-            try {
-              const document = await vscode.workspace.openTextDocument(reference.uri);
-              const lineText = document.lineAt(reference.range.start.line).text;
-
-              // Get relative path from workspace root
-              const relativePath = path.relative(workspaceRoot, reference.uri.fsPath);
-
-              usages.push({
-                filePath: relativePath,
-                lineNumber: reference.range.start.line + 1, // Convert to 1-indexed
-                codeSnippet: lineText.trim(),
-                symbolName: change.symbolName,
-              });
-            } catch (error) {
-              this.log(`Error getting code snippet: ${error}`);
-            }
-          }
-        }
-      } catch (error) {
-        this.log(`Error finding references for ${change.filePath}:${change.lineNumber}: ${error}`);
+      // Flatten and add results to the usages array
+      for (const result of batchResults) {
+        usages.push(...result);
       }
     }
 
     return usages;
+  }
+
+  /**
+   * Find usages for a single code change
+   * @param change The code change to find usages for
+   * @returns Array of usages for this code change
+   */
+  private async findUsagesForChange(change: CodeChange): Promise<CodeUsage[]> {
+    const usages: CodeUsage[] = [];
+    try {
+      if (!change.symbolName) {
+        return usages;
+      }
+
+      const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
+      if (!workspaceRoot) {
+        return usages;
+      }
+
+      const fullPath = path.join(workspaceRoot, change.filePath);
+      const uri = vscode.Uri.file(fullPath);
+
+      // Find references to this symbol
+      const references = await vscode.commands.executeCommand<vscode.Location[]>(
+        'vscode.executeReferenceProvider',
+        uri,
+        new vscode.Position(change.lineNumber - 1, 0)
+      );
+
+      if (!references || references.length === 0) {
+        return usages;
+      }
+
+      for (const reference of references) {
+        // Skip self-references
+        if (reference.uri.fsPath === uri.fsPath && reference.range.start.line === change.lineNumber - 1) {
+          continue;
+        }
+
+        try {
+          const document = await vscode.workspace.openTextDocument(reference.uri);
+          const referenceLine = reference.range.start.line;
+
+          // Get document symbols to find the containing function/method/class
+          const symbols = await vscode.commands.executeCommand<vscode.DocumentSymbol[]>(
+            'vscode.executeDocumentSymbolProvider',
+            reference.uri
+          );
+
+          // Find the smallest symbol that contains our reference line
+          const containingSymbol = this.findSmallestContainingSymbol(symbols, referenceLine);
+
+          let codeSnippet = '';
+          if (containingSymbol) {
+            // Get the entire text range of the containing symbol
+            const startLine = containingSymbol.range.start.line;
+            const endLine = containingSymbol.range.end.line;
+
+            // Build the code block for the entire symbol
+            for (let i = startLine; i <= endLine; i++) {
+              codeSnippet += document.lineAt(i).text + '\n';
+            }
+
+            // Add symbol info to the code snippet
+            codeSnippet = `// ${containingSymbol.kind.toString()}: ${containingSymbol.name}\n${codeSnippet}`;
+          } else {
+            // Fallback to just the line if no containing symbol found
+            codeSnippet = document.lineAt(referenceLine).text;
+          }
+
+          // Get relative path from workspace root
+          const relativePath = path.relative(workspaceRoot, reference.uri.fsPath);
+
+          usages.push({
+            filePath: relativePath,
+            lineNumber: referenceLine + 1, // Convert to 1-indexed
+            codeSnippet: codeSnippet.trim(),
+            symbolName: change.symbolName,
+          });
+        } catch (error) {
+          this.log(`Error getting code snippet: ${error}`);
+        }
+      }
+    } catch (error) {
+      this.log(`Error finding references for ${change.filePath}:${change.lineNumber}: ${error}`);
+    }
+
+    return usages;
+  }
+
+  /**
+   * Find the smallest symbol that contains the given line
+   */
+  private findSmallestContainingSymbol(
+    symbols: vscode.DocumentSymbol[] | undefined,
+    lineNumber: number
+  ): vscode.DocumentSymbol | undefined {
+    if (!symbols) {
+      return undefined;
+    }
+    let smallestSymbol: vscode.DocumentSymbol | undefined = undefined;
+    let smallestRange = Number.MAX_SAFE_INTEGER;
+    for (const symbol of symbols) {
+      // Check if the line is within this symbol's range
+      if (symbol.range.start.line <= lineNumber && symbol.range.end.line >= lineNumber) {
+        // Calculate the size of this symbol's range
+        const rangeSize = symbol.range.end.line - symbol.range.start.line;
+        // If this is smaller than our current smallest, update it
+        if (rangeSize < smallestRange) {
+          smallestRange = rangeSize;
+          smallestSymbol = symbol;
+        }
+        // Recursively check children for an even smaller containing symbol
+        const childSymbol = this.findSmallestContainingSymbol(symbol.children, lineNumber);
+        if (childSymbol) {
+          const childRangeSize = childSymbol.range.end.line - childSymbol.range.start.line;
+          if (childRangeSize < smallestRange) {
+            smallestRange = childRangeSize;
+            smallestSymbol = childSymbol;
+          }
+        }
+      }
+    }
+    return smallestSymbol;
   }
 
   /**

@@ -603,16 +603,17 @@ ${context.diff.length > MAX_CONTEXT_LENGTH ? this.smartTruncateContext(context.d
     if (context.usages.length > 0) {
       contextContent += '## Code Usages\n\n';
 
-      // Group usages by symbol name for better organization
-      const usagesBySymbol: Record<string, typeof context.usages> = {};
+      // Use a Map instead of a plain object to handle special property names like "constructor"
+      const usagesBySymbol = new Map<string, Array<typeof context.usages[0]>>();
+      
       for (const usage of context.usages) {
-        if (!usagesBySymbol[usage.symbolName]) {
-          usagesBySymbol[usage.symbolName] = [];
+        if (!usagesBySymbol.has(usage.symbolName)) {
+          usagesBySymbol.set(usage.symbolName, []);
         }
-        usagesBySymbol[usage.symbolName].push(usage);
+        usagesBySymbol.get(usage.symbolName)!.push(usage);
       }
 
-      for (const [symbolName, usages] of Object.entries(usagesBySymbol)) {
+      for (const [symbolName, usages] of usagesBySymbol.entries()) {
         contextContent += `### Symbol: ${symbolName}\n`;
         contextContent += `Found ${usages.length} usages:\n\n`;
 
