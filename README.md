@@ -143,6 +143,16 @@ You can customize the extension's behavior through the following settings:
 
 ## Release Notes
 
+### 0.0.12 (2025-03-16)
+- Added state persistence for reviewed issues in PR Review Assistant
+- Added visual chart for severity distribution in PR Review dashboard
+- Added configuration option to enable/disable debug logging
+- Improved error handling for JSON parsing in LLM responses
+- Enhanced file grouping algorithm for large PRs
+- Optimized token usage and memory management for better performance
+- Added keyboard shortcuts for navigation in PR Review UI
+- Added collapsible sections in PR Review results
+
 ### 0.0.11 (2025-03-15)
 - Added Breaking Changes Analysis feature
 - Improved UI for branch selection and model choice
