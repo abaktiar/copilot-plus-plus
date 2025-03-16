@@ -315,7 +315,7 @@
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
     "test": "vscode-test",
-    "debug": "pnpm run compile && code --extensionDevelopmentPath=${PWD} --enable-proposed-api=albaktiar.copilot-plus-plus ."
+    "dev": "pnpm run compile && code --extensionDevelopmentPath=${PWD} --enable-proposed-api=albaktiar.copilot-plus-plus ."
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
