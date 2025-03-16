@@ -31,7 +31,10 @@ You can customize the PR review behavior in your VS Code settings:
 "copilotPlusPlus.prReview.includePerformance": true,
 "copilotPlusPlus.prReview.includeBreakingChanges": true,
 "copilotPlusPlus.prReview.enableInlineLinks": true,
-"copilotPlusPlus.prReview.severityLevels": ["Critical", "High", "Medium", "Low"]
+"copilotPlusPlus.prReview.severityLevels": ["Critical", "High", "Medium", "Low"],
+"copilotPlusPlus.prReview.includeLogicalErrors": true,
+"copilotPlusPlus.prReview.includeTestingGaps": true,
+"copilotPlusPlus.prReview.maxTokensPerGroup": 16000
 ```
 
 ### Settings Details
@@ -44,6 +47,26 @@ You can customize the PR review behavior in your VS Code settings:
 | `includeBreakingChanges` | Identify breaking changes such as modified APIs or altered schemas |
 | `enableInlineLinks` | Show clickable links to navigate directly to issue locations |
 | `severityLevels` | Customize the severity categories used for issue classification |
+| `includeLogicalErrors` | Check for logical errors, edge cases, and flawed business logic |
+| `includeTestingGaps` | Identify missing or inadequate test coverage |
+| `maxTokensPerGroup` | Maximum tokens per file group when processing large PRs (higher values process more files together) |
+
+## Advanced Configuration
+
+### Token Limits for Large PRs
+
+The `maxTokensPerGroup` setting controls how many files are processed together in a single request to the language model. This is particularly important for large PRs:
+
+```json
+"copilotPlusPlus.prReview.maxTokensPerGroup": 16000
+```
+
+Recommended values based on model:
+- **6000-8000**: For GPT-4o-mini or similar smaller models
+- **16000-32000**: For GPT-4o, Claude 3.5 Sonnet, or similar standard models
+- **Up to 64000**: For latest models with expanded context windows
+
+Increasing this value allows more files to be processed together, potentially improving the quality of the review by giving the model more context. However, it requires more capable models with larger context windows.
 
 ## How It Works
 
