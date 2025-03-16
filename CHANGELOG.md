@@ -2,6 +2,27 @@
 All notable changes to the "copilot-plus-plus" extension will be documented in this file.
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.0.12] - 2025-03-16
+### Added
+- Configuration option to enable/disable debug logging for PR reviews
+- State persistence for reviewed issues in PR Review Assistant
+- Visual chart for severity distribution in PR Review dashboard
+- Keyboard shortcuts for navigation in PR Review UI
+- Collapsible sections in PR Review results
+
+### Changed
+- Improved error handling for JSON parsing in LLM responses
+- Enhanced file grouping algorithm for large PRs
+- Optimized token usage for better performance with large PRs
+- Refactored services for better separation of concerns
+- Updated default maxTokensPerGroup to 16000 for better PR analysis
+
+### Fixed
+- JSON parsing errors with certain response formats
+- UI responsiveness in PR Review webview
+- Progress notification accuracy during PR reviews
+- Memory usage optimizations for large PRs
+
 ## [0.0.11] - 2025-03-15
 ### Added
 - Breaking Changes Analysis feature
