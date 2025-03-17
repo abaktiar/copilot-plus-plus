@@ -49,50 +49,72 @@ h4 {
   background: var(--vscode-editor-background);
   border: 1px solid var(--vscode-widget-border);
   border-radius: var(--border-radius);
-  padding: 20px;
-  margin-bottom: 24px;
+  padding: 24px;
+  margin-bottom: 32px;
   box-shadow: var(--card-shadow);
 }
 
-.form-group {
+.section h2 {
+  margin: 0 0 24px 0;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--vscode-widget-border);
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 8px;
-  margin-bottom: 16px;
+  color: var(--vscode-editor-foreground);
+}
+
+.icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: var(--vscode-icon-foreground);
 }
 
 label {
-  font-size: 14px;
-  color: var(--vscode-descriptionForeground);
+  display: block;
+  margin-bottom: 8px;
+  color: var(--vscode-input-foreground);
+  font-size: 13px;
 }
 
-select, input {
+select {
   width: 100%;
-  padding: 8px 12px;
-  border-radius: var(--border-radius);
-  border: 1px solid var(--vscode-input-border);
+  padding: 8px;
   background: var(--vscode-input-background);
   color: var(--vscode-input-foreground);
-  font-size: 14px;
+  border: 1px solid var(--vscode-input-border);
+  border-radius: var(--border-radius);
+  font-size: 13px;
+  outline: none;
   transition: border-color var(--transition-speed) ease;
 }
 
-select:focus, input:focus {
+select:hover {
   border-color: var(--vscode-focusBorder);
-  outline: none;
+}
+
+select:focus {
+  border-color: var(--vscode-focusBorder);
+}
+
+select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 button {
-  padding: 8px 16px;
-  border-radius: var(--border-radius);
-  font-size: 14px;
-  font-weight: 500;
-  transition: all var(--transition-speed) ease;
-  cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  padding: 8px 16px;
+  border-radius: var(--border-radius);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-speed) ease;
   background: var(--vscode-button-background);
   color: var(--vscode-button-foreground);
   border: 1px solid var(--vscode-button-border, transparent);
@@ -190,22 +212,96 @@ button:disabled {
   color: var(--vscode-testing-iconQueued);
 }
 
-.filters {
+.filters-section {
   margin-bottom: 24px;
+  background-color: var(--vscode-editor-background);
 }
 
-.filter-controls {
+.filters-section h3 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--vscode-foreground);
+}
+
+.filter-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-top: 12px;
+  gap: 24px;
+  align-items: flex-start;
 }
 
-.filter-group {
+.filter-column {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-width: 200px;
+  flex: 1;
+  max-width: 50%;
+}
+
+.filter-column label {
+  font-size: 14px;
+  margin-bottom: 8px;
+  color: var(--vscode-foreground);
+}
+
+.dark-select {
+  width: 100%;
+  padding: 8px 12px;
+  background-color: #1e1e1e;
+  color: var(--vscode-input-foreground);
+  border: 1px solid #3c3c3c;
+  border-radius: 4px;
+  font-size: 14px;
+  height: 36px;
+  appearance: menulist;
+}
+
+.dark-select:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  border-color: var(--vscode-focusBorder);
+}
+
+.dark-input {
+  width: 100%;
+  padding: 8px 12px;
+  background-color: #1e1e1e;
+  color: var(--vscode-input-foreground);
+  border: 1px solid #3c3c3c;
+  border-radius: 4px;
+  font-size: 14px;
+  height: 24px;
+}
+
+.dark-input::placeholder {
+  color: #8a8a8a;
+  opacity: 0.7;
+}
+
+.dark-input:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  border-color: var(--vscode-focusBorder);
+}
+
+/* Remove the old filter styles */
+.filters {
+  display: none;
+}
+
+.filter-controls {
+  display: none;
+}
+
+.filter-group {
+  display: none;
+}
+
+.filter-select {
+  display: none;
+}
+
+.search-input {
+  display: none;
 }
 
 .breaking-changes-list {
@@ -394,4 +490,42 @@ button:disabled {
   .breaking-change-location {
     margin-top: 8px;
   }
+}
+
+.filter-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--vscode-widget-border);
+}
+
+.filter-actions h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.breaking-changes-list {
+  margin-top: 16px;
+}
+
+.search-container {
+  width: 300px;
+}
+
+.search-container .dark-input {
+  height: 32px;
+  font-size: 13px;
+  padding: 6px 12px;
+}
+
+.search-row {
+  margin-bottom: 16px;
+  padding-right: 24px;
+}
+
+.search-row .dark-input {
+  width: 100%;
 } 

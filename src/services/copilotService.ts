@@ -5,6 +5,7 @@ import { LoggingService } from './loggingService';
 import { DetailedDiffResult } from './gitService';
 import { DebugLogService } from './debugLogService';
 import { JsonSanitizationService } from './jsonSanitizationService';
+import { CodeChange, CodeUsage, BreakingChange, BreakingChangesSummary } from './breakingChangeService';
 
 interface CommitContext {
   diff: string;
@@ -648,5 +649,157 @@ export class CopilotService {
         `Failed to parse JSON response: ${parseError instanceof Error ? parseError.message : String(parseError)}`
       );
     }
+  }
+
+  /**
+   * Analyze a group of files for breaking changes
+   * @param detailedDiff Detailed diff information for the files in this group
+   * @param codeChanges Code changes in this group
+   * @param codeUsages Code usages in this group
+   * @param modelFamily Optional language model family to use
+   * @returns Analysis result with breaking changes and summary
+   */
+  public async analyzeBreakingChangesForGroup(
+    detailedDiff: DetailedDiffResult[],
+    codeChanges: CodeChange[],
+    codeUsages: CodeUsage[],
+    modelFamily?: string
+  ): Promise<{
+    breakingChanges: BreakingChange[];
+    summary: BreakingChangesSummary;
+  }> {
+    this.log('Analyzing breaking changes for file group');
+
+    try {
+      // Get the breaking changes config
+      const config = ConfigService.getBreakingChangesConfig();
+
+      // Create a context object for the prompt
+      const context = {
+        codeChanges,
+        usages: codeUsages,
+        diffInfo: JSON.stringify(detailedDiff),
+        files: detailedDiff.map((diff) => ({ status: 'modified', file: diff.filePath })),
+        config,
+      };
+
+      // Build the prompt using PromptService
+      const messages = PromptService.buildBreakingChangesPrompt(context);
+
+      // Get the language model
+      const modelName = modelFamily || ConfigService.getLanguageModelFamily();
+      this.log(`Using language model family: ${modelName}`);
+
+      // Select the configured Copilot model
+      const [model] = await vscode.lm.selectChatModels({
+        vendor: 'copilot',
+        family: modelName,
+      });
+
+      if (!model) {
+        const errorMsg = `No suitable language model found for: ${modelName}. Please make sure GitHub Copilot is installed and enabled.`;
+        this.logError(errorMsg);
+        throw new Error(errorMsg);
+      }
+
+      this.log('Prompt built, sending request to Copilot...');
+
+      // Send the request to the language model
+      const response = await model.sendRequest(messages, {});
+
+      // Stream and collect the response
+      let responseContent = '';
+      for await (const fragment of response.text) {
+        responseContent += fragment;
+      }
+
+      // Parse the response
+      if (!responseContent) {
+        this.logError('No response from language model');
+        return this.getEmptyBreakingChangesResult();
+      }
+
+      // Extract JSON from the response
+      try {
+        // Extract JSON from the response
+        const jsonMatch = responseContent.match(/```json\n([\s\S]*?)\n```/) || responseContent.match(/({[\s\S]*})/);
+        let result;
+
+        if (jsonMatch && jsonMatch[1]) {
+          const jsonContent = jsonMatch[1].trim();
+          result = JSON.parse(jsonContent);
+        } else {
+          this.logError('Could not extract JSON from response');
+          return this.getEmptyBreakingChangesResult();
+        }
+
+        // Validate the result structure
+        if (!result || !result.breakingChanges || !result.summary) {
+          this.logError('Invalid response structure from language model');
+          return this.getEmptyBreakingChangesResult();
+        }
+
+        this.log(`Found ${result.breakingChanges.length} breaking changes in group`);
+        return result;
+      } catch (error) {
+        // Log the error and save debug information if enabled
+        this.logError(`Error parsing breaking changes response: ${error}`);
+
+        // Save debug log if debug logging is enabled
+        const breakingChangesConfig = ConfigService.getBreakingChangesConfig();
+        if (breakingChangesConfig.enableDebugLogging) {
+          // Save debug information to a file
+          const debugInfo = {
+            prompt: JSON.stringify(messages),
+            context: JSON.stringify(context),
+            response: responseContent,
+            error: error instanceof Error ? error.message : String(error),
+          };
+
+          // Log the debug information
+          this.log(`Saving debug information for breaking changes analysis error`);
+
+          // Write debug info to file system
+          const fs = require('fs');
+          const path = require('path');
+          const debugDir = path.join(__dirname, '..', '..', 'debug-logs');
+
+          // Create directory if it doesn't exist
+          if (!fs.existsSync(debugDir)) {
+            fs.mkdirSync(debugDir, { recursive: true });
+          }
+
+          // Write debug info to file
+          const timestamp = new Date().toISOString().replace(/:/g, '-');
+          const debugFile = path.join(debugDir, `breaking-changes-error-${timestamp}.json`);
+          fs.writeFileSync(debugFile, JSON.stringify(debugInfo, null, 2));
+          this.log(`Debug information saved to ${debugFile}`);
+        }
+
+        return this.getEmptyBreakingChangesResult();
+      }
+    } catch (error) {
+      this.logError(`Error in breaking changes analysis: ${error}`);
+      return this.getEmptyBreakingChangesResult();
+    }
+  }
+
+  /**
+   * Get an empty breaking changes result
+   */
+  private getEmptyBreakingChangesResult(): {
+    breakingChanges: BreakingChange[];
+    summary: BreakingChangesSummary;
+  } {
+    return {
+      breakingChanges: [],
+      summary: {
+        totalBreakingChanges: 0,
+        criticalCount: 0,
+        highCount: 0,
+        mediumCount: 0,
+        lowCount: 0,
+      },
+    };
   }
 }
