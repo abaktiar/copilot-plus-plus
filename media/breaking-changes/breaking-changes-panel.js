@@ -223,14 +223,40 @@
         e(
           'div',
           { className: 'section' },
+          // Title and model selection row
           e(
-            'h2',
-            null,
+            'div',
+            {
+              style: {
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '24px',
+                paddingBottom: '16px',
+                borderBottom: '1px solid var(--vscode-widget-border)',
+              },
+            },
             e(
               'div',
               { style: { display: 'flex', alignItems: 'center', gap: '8px' } },
               e(Icons.Branch),
-              'Breaking Changes Analysis'
+              e('h2', { style: { margin: 0 } }, 'Breaking Changes Analysis')
+            ),
+            e(
+              'div',
+              { style: { display: 'flex', alignItems: 'center', gap: '8px' } },
+              e('label', { htmlFor: 'modelSelect', style: { margin: 0 } }, 'Model:'),
+              e(
+                'select',
+                {
+                  id: 'modelSelect',
+                  value: languageModel,
+                  onChange: (e) => setLanguageModel(e.target.value),
+                  disabled: isLoading,
+                  style: { width: '250px' },
+                },
+                models.map((model) => e('option', { key: model.id, value: model.id }, model.name))
+              )
             )
           ),
           // Branch selection row
@@ -274,27 +300,10 @@
               )
             )
           ),
-          // Model selection row
-          e(
-            'div',
-            { style: { marginBottom: '16px' } },
-            e('label', { htmlFor: 'modelSelect' }, 'Language Model'),
-            e(
-              'select',
-              {
-                id: 'modelSelect',
-                value: languageModel,
-                onChange: (e) => setLanguageModel(e.target.value),
-                disabled: isLoading,
-                style: { width: '100%' },
-              },
-              models.map((model) => e('option', { key: model.id, value: model.id }, model.name))
-            )
-          ),
           // Analyze button row
           e(
             'div',
-            null,
+            { style: { display: 'flex', justifyContent: 'flex-end' } },
             e(
               'button',
               {
@@ -371,20 +380,38 @@
             // Filters
             e(
               'div',
-              { className: 'filters' },
+              { className: 'filters-section' },
+              // 1. Filter header row
               e('h3', null, 'Filters'),
+
+              // 2. Search row
               e(
                 'div',
-                { className: 'filter-controls' },
+                { className: 'search-row', style: { marginBottom: '16px' } },
+                e('input', {
+                  type: 'text',
+                  value: searchTerm,
+                  onChange: (e) => setSearchTerm(e.target.value),
+                  placeholder: 'Search in descriptions, files, etc.',
+                  className: 'dark-input',
+                  style: { width: '100%' },
+                })
+              ),
+
+              // 3. Filter select inputs row
+              e(
+                'div',
+                { className: 'filter-row' },
                 e(
                   'div',
-                  { className: 'filter-group' },
+                  { className: 'filter-column' },
                   e('label', null, 'Severity:'),
                   e(
                     'select',
                     {
                       value: filterSeverity,
                       onChange: (e) => setFilterSeverity(e.target.value),
+                      className: 'dark-select',
                     },
                     e('option', { value: 'all' }, 'All Severities'),
                     e('option', { value: 'critical' }, 'Critical'),
@@ -395,13 +422,14 @@
                 ),
                 e(
                   'div',
-                  { className: 'filter-group' },
+                  { className: 'filter-column' },
                   e('label', null, 'Change Type:'),
                   e(
                     'select',
                     {
                       value: filterChangeType,
                       onChange: (e) => setFilterChangeType(e.target.value),
+                      className: 'dark-select',
                     },
                     e('option', { value: 'all' }, 'All Types'),
                     e('option', { value: 'method-signature' }, 'Method Signature'),
@@ -411,18 +439,14 @@
                     e('option', { value: 'behavior-change' }, 'Behavior Change'),
                     e('option', { value: 'other' }, 'Other')
                   )
-                ),
-                e(
-                  'div',
-                  { className: 'filter-group' },
-                  e('label', null, 'Search:'),
-                  e('input', {
-                    type: 'text',
-                    value: searchTerm,
-                    onChange: (e) => setSearchTerm(e.target.value),
-                    placeholder: 'Search in descriptions, files, etc.',
-                  })
                 )
+              ),
+
+              // Breaking changes count
+              e(
+                'div',
+                { className: 'filter-actions' },
+                e('h3', { style: { margin: 0 } }, `Breaking Changes (${filteredBreakingChanges.length})`)
               )
             ),
 
@@ -430,7 +454,6 @@
             e(
               'div',
               { className: 'breaking-changes-list' },
-              e('h3', null, `Breaking Changes (${filteredBreakingChanges.length})`),
               filteredBreakingChanges.length === 0
                 ? e('p', { className: 'no-results' }, 'No breaking changes found matching the current filters.')
                 : filteredBreakingChanges.map((change) =>

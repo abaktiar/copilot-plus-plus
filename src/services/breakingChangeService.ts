@@ -5,6 +5,11 @@ import { CopilotService } from './copilotService';
 import { LoggingService } from './loggingService';
 import { PromptService } from './promptService';
 import { ConfigService, BreakingChangesConfig } from './configService';
+import {
+  BreakingChangesFileGroupingService,
+  BreakingChangesQueueManager,
+  BreakingChangesResultAggregationService,
+} from './breakingChanges';
 
 export interface CodeChange {
   filePath: string;
@@ -58,12 +63,18 @@ export class BreakingChangeService {
   private _gitService: GitService;
   private _copilotService: CopilotService;
   private _config: BreakingChangesConfig;
+  private _fileGroupingService: BreakingChangesFileGroupingService;
+  private _changesQueueManager: BreakingChangesQueueManager;
+  private _resultAggregationService: BreakingChangesResultAggregationService;
 
   constructor() {
     this._logger = LoggingService.getInstance();
     this._gitService = new GitService();
     this._copilotService = new CopilotService();
     this._config = ConfigService.getBreakingChangesConfig();
+    this._fileGroupingService = new BreakingChangesFileGroupingService();
+    this._changesQueueManager = new BreakingChangesQueueManager();
+    this._resultAggregationService = new BreakingChangesResultAggregationService();
 
     // Listen for configuration changes
     vscode.workspace.onDidChangeConfiguration((e) => {
@@ -96,7 +107,7 @@ export class BreakingChangeService {
     return await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: 'Analyzing breaking changes...',
+        title: 'Analyzing Breaking Changes',
         cancellable: true,
       },
       async (progress, token) => {
@@ -113,17 +124,82 @@ export class BreakingChangeService {
           // Extract the code changes (functions, classes, etc.)
           const codeChanges = await this.extractCodeChanges(detailedDiff);
 
-          progress.report({ increment: 30, message: 'Finding code usages...' });
+          progress.report({ increment: 10, message: 'Finding code usages...' });
           // Find usages of changed code
           const usages = await this.findCodeUsages(codeChanges);
 
-          progress.report({ increment: 20, message: 'Analyzing potential breaks...' });
-          // Analyze potential breaking changes
-          const breakingChanges = await this.analyzeWithCopilot(codeChanges, usages, diffInfo, files);
+          // Create context for analysis
+          const context = {
+            sourceBranch,
+            targetBranch,
+            diffInfo,
+            files,
+            detailedDiff,
+            codeChanges,
+            usages,
+            config: this._config,
+          };
 
-          progress.report({ increment: 20, message: 'Organizing results...' });
-          // Organize and return results
-          return this.organizeResults(breakingChanges);
+          // Determine if we should use chunking based on the number of files changed
+          const shouldUseChunking = files.length > 10 || detailedDiff.length > 20;
+
+          if (!shouldUseChunking) {
+            // For small changes, use the standard analysis process
+            this.log('Small change set detected, using standard analysis process');
+            progress.report({ increment: 40, message: 'Analyzing potential breaks...' });
+            return await this.analyzeWithCopilot(codeChanges, usages, diffInfo, files);
+          }
+
+          // For larger changes, use the chunked analysis process
+          this.log('Large change set detected, using chunked analysis process');
+          progress.report({ increment: 10, message: 'Grouping files for analysis...' });
+
+          // Group files for processing
+          const fileGroups = this._fileGroupingService.groupFiles(detailedDiff, codeChanges, usages);
+          this.log(`Created ${fileGroups.length} file groups for processing`);
+
+          // Initialize the changes queue
+          this._changesQueueManager.initializeQueue(fileGroups, context, ConfigService.getLanguageModelFamily());
+
+          // Set up progress callback
+          this._changesQueueManager.onProgress((update) => {
+            const percent = Math.floor((update.completedCount / update.totalCount) * 40);
+
+            // Create a progress message that includes the group number
+            let progressMessage = '';
+            if (update.currentlyProcessing && update.currentGroupIndex) {
+              progressMessage = `[${update.currentGroupIndex}/${update.totalCount}] Processing ${update.currentlyProcessing}...`;
+            } else {
+              progressMessage = `Processed ${update.completedCount} of ${update.totalCount} file groups`;
+            }
+
+            progress.report({
+              increment: percent > 0 ? percent / update.totalCount : 0,
+              message: progressMessage,
+            });
+          });
+
+          // Process the queue and wait for results
+          const analysisPromise = new Promise<any[]>((resolve) => {
+            this._changesQueueManager.onComplete((results) => {
+              resolve(results);
+            });
+            this._changesQueueManager.startProcessing();
+          });
+
+          // Wait for all analyses to complete
+          const results = await analysisPromise;
+
+          // Aggregate results
+          progress.report({ increment: 10, message: 'Aggregating results...' });
+          const aggregatedResult = await this._resultAggregationService.aggregateResults(
+            results,
+            context,
+            ConfigService.getLanguageModelFamily()
+          );
+
+          this.log('Breaking changes analysis completed successfully');
+          return aggregatedResult;
         } catch (error) {
           this.logError(`Failed to analyze breaking changes: ${error}`);
           throw error;
@@ -524,56 +600,6 @@ export class BreakingChangeService {
       this.logError(`Error communicating with Copilot: ${error}`);
       throw error;
     }
-  }
-
-  /**
-   * Organize and format the breaking changes results
-   */
-  private organizeResults(breakingChanges: any): BreakingChangesResult {
-    this.log('Organizing breaking changes results');
-
-    // Ensure the result has the expected structure
-    if (!breakingChanges.breakingChanges || !Array.isArray(breakingChanges.breakingChanges)) {
-      breakingChanges.breakingChanges = [];
-    }
-
-    if (!breakingChanges.summary) {
-      breakingChanges.summary = {
-        totalBreakingChanges: breakingChanges.breakingChanges.length,
-        criticalCount: 0,
-        highCount: 0,
-        mediumCount: 0,
-        lowCount: 0,
-      };
-    }
-
-    // Count by severity if not already done
-    if (
-      breakingChanges.breakingChanges.length > 0 &&
-      breakingChanges.summary.criticalCount === 0 &&
-      breakingChanges.summary.highCount === 0 &&
-      breakingChanges.summary.mediumCount === 0 &&
-      breakingChanges.summary.lowCount === 0
-    ) {
-      for (const change of breakingChanges.breakingChanges) {
-        switch (change.severity) {
-          case 'critical':
-            breakingChanges.summary.criticalCount++;
-            break;
-          case 'high':
-            breakingChanges.summary.highCount++;
-            break;
-          case 'medium':
-            breakingChanges.summary.mediumCount++;
-            break;
-          case 'low':
-            breakingChanges.summary.lowCount++;
-            break;
-        }
-      }
-    }
-
-    return breakingChanges as BreakingChangesResult;
   }
 
   /**

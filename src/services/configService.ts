@@ -35,6 +35,8 @@ export interface BreakingChangesConfig {
   includePrivateAPIs: boolean;
   includeInternal: boolean;
   detectionLevel: 'strict' | 'moderate' | 'lenient';
+  maxTokensPerGroup: number;
+  enableDebugLogging: boolean;
 }
 
 /**
@@ -189,6 +191,8 @@ export class ConfigService {
       includePrivateAPIs: config.get<boolean>('includePrivateAPIs') ?? false,
       includeInternal: config.get<boolean>('includeInternal') ?? false,
       detectionLevel: config.get<'strict' | 'moderate' | 'lenient'>('detectionLevel') || 'moderate',
+      maxTokensPerGroup: config.get<number>('maxTokensPerGroup') ?? 16000,
+      enableDebugLogging: config.get<boolean>('enableDebugLogging') ?? false,
     };
   }
 }
