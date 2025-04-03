@@ -17,6 +17,7 @@ Format your response as:
 - First line: Commit title following the required style
 - Follow with a blank line
 - Then include a comprehensive, non-redundant bullet point list that:
+  - Starts with a dash (-) character followed by a space
   - Groups related changes by functionality rather than by file
   - Uses concise but descriptive language for each point
   - Mentions specific files only when relevant to understand the change
