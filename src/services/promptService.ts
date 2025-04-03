@@ -16,7 +16,12 @@ If provided, the title of the commit message must align with the style of the sh
 Format your response as:
 - First line: Commit title following the required style
 - Follow with a blank line
-- Then include a bullet point list summarizing the key code changes with file names when relevant
+- Then include a comprehensive, non-redundant bullet point list that:
+  - Groups related changes by functionality rather than by file
+  - Uses concise but descriptive language for each point
+  - Mentions specific files only when relevant to understand the change
+  - Emphasizes what was accomplished rather than listing files changed
+  - Avoids repeating information that is already clear from other bullets
 
 Do not enclose the suggested commit message in backticks. Skip preamble. Only respond with the commit message.`;
 
@@ -604,8 +609,8 @@ ${context.diff.length > MAX_CONTEXT_LENGTH ? this.smartTruncateContext(context.d
       contextContent += '## Code Usages\n\n';
 
       // Use a Map instead of a plain object to handle special property names like "constructor"
-      const usagesBySymbol = new Map<string, Array<typeof context.usages[0]>>();
-      
+      const usagesBySymbol = new Map<string, Array<(typeof context.usages)[0]>>();
+
       for (const usage of context.usages) {
         if (!usagesBySymbol.has(usage.symbolName)) {
           usagesBySymbol.set(usage.symbolName, []);
