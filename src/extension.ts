@@ -4,6 +4,7 @@ import { registerPrReviewCommand } from './commands/prReviewCommand';
 import { registerPrDescriptionCommand } from './commands/prDescriptionPanel';
 import { registerBreakingChangesCommand } from './commands/breakingChangesCommand';
 import { LoggingService } from './services/loggingService';
+import { ConfigService } from './services/configService';
 import { CopilotPlusPlusViewProvider } from './commands/CopilotPlusPlusViewProvider';
 
 // Keep track of view provider
@@ -19,6 +20,21 @@ export function activate(context: vscode.ExtensionContext) {
   registerPrReviewCommand(context);
   registerPrDescriptionCommand(context);
   registerBreakingChangesCommand(context);
+
+  // Register debug command to log available models
+  const logModelsCommand = vscode.commands.registerCommand('copilot-plus-plus.logAvailableModels', async () => {
+    const logger = LoggingService.getInstance();
+    logger.log('Logging available language models...', 'Extension');
+
+    try {
+      await ConfigService.logAvailableModels();
+      vscode.window.showInformationMessage('Available models logged to console. Check Developer Tools for details.');
+    } catch (error) {
+      logger.logError('Failed to log available models', error, 'Extension');
+      vscode.window.showErrorMessage('Failed to log available models. See console for details.');
+    }
+  });
+  context.subscriptions.push(logModelsCommand);
 
   // Create and register the PR Description view provider
   try {

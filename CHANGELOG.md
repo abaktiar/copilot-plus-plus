@@ -2,6 +2,12 @@
 All notable changes to the "copilot-plus-plus" extension will be documented in this file.
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.0.16] - 2025-07-07
+### Added
+- Enhanced language model support with expanded model selection
+  - Added GPT-4.1 with enhanced capabilities
+  - Added Claude 4 Sonnet with advanced reasoning capabilities
+
 ## [0.0.12] - 2025-03-16
 ### Added
 - Configuration option to enable/disable debug logging for PR reviews

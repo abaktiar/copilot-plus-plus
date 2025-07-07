@@ -114,6 +114,13 @@ For more details, see the [Breaking Changes Analysis documentation](docs/breakin
 You can customize the extension's behavior through the following settings:
 
 - `copilotPlusPlus.languageModel`: Choose which AI model to use for generations
+  - **GPT-4o**: Most capable model, best for complex understanding
+  - **GPT-4o-mini**: Faster variant with slightly reduced capabilities
+  - **GPT-4.1**: Latest GPT-4 model with enhanced capabilities
+  - **Claude 3.5 Sonnet**: Anthropic's most capable model with advanced reasoning
+  - **Claude 4 Sonnet**: Latest Anthropic model with enhanced capabilities
+  - **o1**: OpenAI o1 model, highest reasoning capabilities
+  - **o1-mini**: Smaller, faster OpenAI o1 model
 - `copilotPlusPlus.commitStyle`: Select commit message style (conventional, gitmoji, etc.)
 - `copilotPlusPlus.includeTicketNumber`: Automatically include ticket numbers from branch names
 - `copilotPlusPlus.ticketPattern`: Customize regex pattern for ticket number detection
@@ -142,6 +149,11 @@ You can customize the extension's behavior through the following settings:
    ```
 
 ## Release Notes
+
+### 0.0.16 (2025-07-07)
+- Enhanced language model support with expanded model selection
+  - Added GPT-4.1 with enhanced capabilities
+  - Added Claude 4 Sonnet with advanced reasoning capabilities
 
 ### 0.0.12 (2025-03-16)
 - Added state persistence for reviewed issues in PR Review Assistant

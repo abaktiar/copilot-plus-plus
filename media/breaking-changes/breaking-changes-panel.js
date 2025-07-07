@@ -83,7 +83,7 @@
       const [isLoading, setIsLoading] = React.useState(false);
       const [error, setError] = React.useState(null);
       const [result, setResult] = React.useState(null);
-      const [languageModel, setLanguageModel] = React.useState('gpt-4o');
+      const [languageModel, setLanguageModel] = React.useState('gpt-4.1');
       const [filterSeverity, setFilterSeverity] = React.useState('all');
       const [filterChangeType, setFilterChangeType] = React.useState('all');
       const [searchTerm, setSearchTerm] = React.useState('');
@@ -93,7 +93,9 @@
       const models = window.sharedModelConfig?.models || [
         { id: 'gpt-4o', name: 'GPT-4o' },
         { id: 'gpt-4o-mini', name: 'GPT-4o-mini' },
+        { id: 'gpt-4.1', name: 'GPT-4.1' },
         { id: 'claude-3.5-sonnet', name: 'Claude 3.5 Sonnet' },
+        { id: 'claude-sonnet-4', name: 'Claude 4 Sonnet' },
         { id: 'o1', name: 'o1' },
         { id: 'o1-mini', name: 'o1-mini' },
       ];

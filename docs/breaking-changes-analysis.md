@@ -34,8 +34,10 @@ Choose any two branches in your repository to compare. The extension will analyz
 ### Language Model Selection
 Select from various language models to perform the analysis:
 - GPT-4o
+- GPT-4.1
 - GPT-4o-mini
 - Claude 3.5 Sonnet
+- Claude 4 Sonnet 
 - o1
 - o1-mini
 

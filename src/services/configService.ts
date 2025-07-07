@@ -49,7 +49,7 @@ export class ConfigService {
   public static getCommitMessageConfig(): CommitMessageConfig {
     const config = vscode.workspace.getConfiguration('copilotPlusPlus');
     return {
-      languageModel: config.get<string>('languageModel') || 'gpt-4o',
+      languageModel: config.get<string>('languageModel') || 'gpt-4.1',
       commitStyle: config.get<string>('commitStyle') || 'conventional',
       includeTicketNumber: config.get<boolean>('includeTicketNumber') ?? true,
       ticketPattern: config.get<string>('ticketPattern') || '(?:^|\\/)([A-Z]+-\\d+)(?:\\/|$|[-_])',
@@ -92,7 +92,7 @@ export class ConfigService {
    */
   public static getLanguageModelFamily(): string {
     const config = vscode.workspace.getConfiguration('copilotPlusPlus');
-    return config.get<string>('languageModel') || 'gpt-4o';
+    return config.get<string>('languageModel') || 'gpt-4.1';
   }
 
   /**
@@ -194,5 +194,25 @@ export class ConfigService {
       maxTokensPerGroup: config.get<number>('maxTokensPerGroup') ?? 16000,
       enableDebugLogging: config.get<boolean>('enableDebugLogging') ?? false,
     };
+  }
+
+  /**
+   * Log all available language models using VS Code Language Model API
+   */
+  public static async logAvailableModels(): Promise<void> {
+    try {
+      console.log('🔍 Discovering available language models...');
+
+      // Get all available models (no selector = all models)
+      const allModels = await vscode.lm.selectChatModels();
+
+      console.log(`📊 Found ${allModels.length} total models:`);
+
+      allModels.forEach((model, index) => {
+        console.log(`\n📋 Model ${index + 1}: ${JSON.stringify(model, null, 2)}`);
+      });
+    } catch (error) {
+      console.error('❌ Error discovering language models:', error);
+    }
   }
 }

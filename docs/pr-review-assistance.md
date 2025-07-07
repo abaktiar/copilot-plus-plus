@@ -75,7 +75,7 @@ The `maxTokensPerGroup` setting controls how many files are processed together i
 
 Recommended values based on model:
 - **6000-8000**: For GPT-4o-mini or similar smaller models
-- **16000-32000**: For GPT-4o, Claude 3.5 Sonnet, or similar standard models
+- **16000-32000**: For GPT-4o, GPT-4.1, Claude 3.5 Sonnet, Claude 4 Sonnet, or similar standard models
 - **Up to 64000**: For latest models with expanded context windows
 
 Increasing this value allows more files to be processed together, potentially improving the quality of the review by giving the model more context. However, it requires more capable models with larger context windows.
