@@ -31,7 +31,7 @@
       const [branches, setBranches] = React.useState([]);
       const [sourceBranch, setSourceBranch] = React.useState('');
       const [targetBranch, setTargetBranch] = React.useState('');
-      const [selectedModel, setSelectedModel] = React.useState('gpt-4.1');
+  const [selectedModel, setSelectedModel] = React.useState('gpt-5-mini');
       const [isLoading, setIsLoading] = React.useState(false);
       const [error, setError] = React.useState('');
       const [result, setResult] = React.useState(null);

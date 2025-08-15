@@ -49,7 +49,7 @@ export class ConfigService {
   public static getCommitMessageConfig(): CommitMessageConfig {
     const config = vscode.workspace.getConfiguration('copilotPlusPlus');
     return {
-      languageModel: config.get<string>('languageModel') || 'gpt-4.1',
+  languageModel: config.get<string>('languageModel') || 'gpt-5-mini',
       commitStyle: config.get<string>('commitStyle') || 'conventional',
       includeTicketNumber: config.get<boolean>('includeTicketNumber') ?? true,
       ticketPattern: config.get<string>('ticketPattern') || '(?:^|\\/)([A-Z]+-\\d+)(?:\\/|$|[-_])',
@@ -92,7 +92,7 @@ export class ConfigService {
    */
   public static getLanguageModelFamily(): string {
     const config = vscode.workspace.getConfiguration('copilotPlusPlus');
-    return config.get<string>('languageModel') || 'gpt-4.1';
+  return config.get<string>('languageModel') || 'gpt-5-mini';
   }
 
   /**
