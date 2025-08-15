@@ -117,6 +117,8 @@ You can customize the extension's behavior through the following settings:
   - **GPT-4o**: Most capable model, best for complex understanding
   - **GPT-4o-mini**: Faster variant with slightly reduced capabilities
   - **GPT-4.1**: Latest GPT-4 model with enhanced capabilities
+  - **GPT-5**: Next generation GPT model with larger context and improved capability
+  - **GPT-5 Mini**: Next generation mini model with improved efficiency and capabilities
   - **Claude 3.5 Sonnet**: Anthropic's most capable model with advanced reasoning
   - **Claude 4 Sonnet**: Latest Anthropic model with enhanced capabilities
   - **o1**: OpenAI o1 model, highest reasoning capabilities
@@ -149,6 +151,11 @@ You can customize the extension's behavior through the following settings:
    ```
 
 ## Release Notes
+
+### 0.0.17 (2025-08-15)
+- Added GPT-5 (`gpt-5`) and GPT-5 Mini (`gpt-5-mini`) to the available language model selection
+- Updated UI components and documentation to include GPT-5 and GPT-5 Mini (README, docs, and webview model lists)
+- Small fixes and consistency updates for model configuration across webviews
 
 ### 0.0.16 (2025-07-07)
 - Enhanced language model support with expanded model selection

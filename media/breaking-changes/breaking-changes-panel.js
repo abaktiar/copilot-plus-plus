@@ -94,6 +94,8 @@
         { id: 'gpt-4o', name: 'GPT-4o' },
         { id: 'gpt-4o-mini', name: 'GPT-4o-mini' },
         { id: 'gpt-4.1', name: 'GPT-4.1' },
+        { id: 'gpt-5', name: 'GPT-5' },
+        { id: 'gpt-5-mini', name: 'GPT-5 Mini' },
         { id: 'claude-3.5-sonnet', name: 'Claude 3.5 Sonnet' },
         { id: 'claude-sonnet-4', name: 'Claude 4 Sonnet' },
         { id: 'o1', name: 'o1' },
