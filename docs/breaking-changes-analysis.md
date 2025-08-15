@@ -36,6 +36,8 @@ Select from various language models to perform the analysis:
 - GPT-4o
 - GPT-4.1
 - GPT-4o-mini
+- GPT-5 Mini
+- GPT-5
 - Claude 3.5 Sonnet
 - Claude 4 Sonnet 
 - o1

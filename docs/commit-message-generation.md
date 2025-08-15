@@ -37,13 +37,17 @@ Control which AI model is used for all generation features.
 |-------|-------------|
 | `gpt-4o` | OpenAI's most advanced general-purpose model, offering excellent code understanding |
 | `gpt-4o-mini` | Faster and more cost-effective version of GPT-4o |
+| `gpt-4.1` | Latest GPT-4 model with enhanced capabilities |
+| `gpt-5` | Next generation GPT model with larger context and improved capability |
+| `gpt-5-mini` | Next generation mini model with improved efficiency and capabilities |
 | `claude-3.5-sonnet` | Anthropic's model with excellent context understanding and reasoning |
+| `claude-sonnet-4` | Latest Anthropic model with enhanced capabilities |
 | `o1` | OpenAI's o1 model optimized for reasoning tasks |
 | `o1-mini` | Smaller, faster version of the o1 model |
 
 Consider your specific needs when selecting a model:
-- For highest quality output: `gpt-4o` or `claude-3.5-sonnet`
-- For faster response times: `gpt-4o-mini` or `o1-mini`
+- For highest quality output: `gpt-4o`, `gpt-4.1`, `gpt-5`, or `claude-3.5-sonnet`
+- For faster response times: `gpt-4o-mini`, `gpt-5-mini`, or `o1-mini`
 - For complex reasoning about code changes: `o1`
 
 ### Commit Style

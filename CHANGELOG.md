@@ -2,6 +2,11 @@
 All notable changes to the "copilot-plus-plus" extension will be documented in this file.
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.0.17] - 2025-08-15
+### Added
+- Added GPT-5 (`gpt-5`) and GPT-5 Mini (`gpt-5-mini`) to the available language model selection
+- Updated webview model lists, UI components, and documentation to include GPT-5 and GPT-5 Mini
+
 ## [0.0.16] - 2025-07-07
 ### Added
 - Enhanced language model support with expanded model selection
