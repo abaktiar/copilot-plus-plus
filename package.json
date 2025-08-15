@@ -142,7 +142,7 @@
             "o1 - OpenAI o1 model, highest reasoning capabilities",
             "o1-mini - Smaller, faster OpenAI o1 model"
           ],
-          "default": "gpt-4.1",
+          "default": "gpt-5-mini",
           "description": "The language model to use for generating commit messages"
         },
         "copilotPlusPlus.defaultTargetBranch": {

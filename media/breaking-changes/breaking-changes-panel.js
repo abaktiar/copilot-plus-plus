@@ -83,7 +83,7 @@
       const [isLoading, setIsLoading] = React.useState(false);
       const [error, setError] = React.useState(null);
       const [result, setResult] = React.useState(null);
-      const [languageModel, setLanguageModel] = React.useState('gpt-4.1');
+  const [languageModel, setLanguageModel] = React.useState('gpt-5-mini');
       const [filterSeverity, setFilterSeverity] = React.useState('all');
       const [filterChangeType, setFilterChangeType] = React.useState('all');
       const [searchTerm, setSearchTerm] = React.useState('');
