@@ -8,22 +8,25 @@ export interface WebviewMessage {
 
 // Extension → Webview messages
 export interface ExtensionMessage extends WebviewMessage {
-  command: 'branchesList' | 'result' | 'error' | 'progressUpdate';
+  command: 'branchesList' | 'result' | 'error' | 'progressUpdate' | 'startLoading' | 'stopLoading' | 'generationComplete';
   branches?: string[];
   currentBranch?: string;
   defaultTargetBranch?: string;
   languageModel?: string;
   result?: any;
   error?: string;
+  message?: string;
   update?: ProgressUpdate;
 }
 
 // Webview → Extension messages  
 export interface WebviewRequest extends WebviewMessage {
-  command: 'getBranches' | 'generateDescription' | 'reviewChanges' | 'analyzeBreaking' | 'error';
+  command: 'getBranches' | 'generateDescription' | 'generatePrDescription' | 'reviewChanges' | 'analyzeBreaking' | 'copyToClipboard' | 'error';
   sourceBranch?: string;
   targetBranch?: string;
   selectedModel?: string;
+  modelFamily?: string;
+  text?: string;
 }
 
 export interface ProgressUpdate {
