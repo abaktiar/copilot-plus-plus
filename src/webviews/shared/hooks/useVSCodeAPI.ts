@@ -45,8 +45,9 @@ export function useMessageListener(
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, [onMessage]);
-}export f
-unction useLoadingState(initialState: boolean = false) {
+}
+
+export function useLoadingState(initialState: boolean = false) {
   const [isLoading, setIsLoading] = useState(initialState);
 
   const startLoading = () => setIsLoading(true);
