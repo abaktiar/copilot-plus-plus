@@ -1,8 +1,8 @@
 {
   "name": "copilot-plus-plus",
   "displayName": "Copilot++",
-  "description": "Enhances GitHub Copilot capabilities with AI-powered development workflows.",
-  "version": "0.0.17",
+  "description": "AI-powered Git workflow automation for VS Code. Generate smart commit messages, comprehensive PR descriptions, conduct automated code reviews, and detect breaking changes using advanced language models.",
+  "version": "0.1.0",
   "publisher": "albaktiar",
   "engines": {
     "vscode": "^1.98.0"
