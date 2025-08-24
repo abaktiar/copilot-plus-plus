@@ -6,7 +6,7 @@ module.exports = {
   
   // Enhanced development configuration
   mode: 'development',
-  devtool: 'eval-source-map',
+  devtool: 'source-map', // Changed from eval-source-map to avoid CSP issues
   
   // Development server configuration (for standalone development)
   devServer: {

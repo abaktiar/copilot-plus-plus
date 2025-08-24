@@ -6,11 +6,10 @@ import {
   useErrorState 
 } from '../shared/hooks/useVSCodeAPI';
 import { 
-  ModelSelector, 
-  BranchSelector, 
-  Button, 
-  LoadingSpinner 
-} from '../shared/components';
+  LoadingSpinner,
+  AVAILABLE_MODELS,
+  DEFAULT_MODEL
+} from '../shared';
 import { 
   ExtensionMessage, 
   ModelConfig, 
@@ -21,9 +20,6 @@ import './styles/pr-description.css';
 
 declare global {
   interface Window {
-    sharedModelConfig?: {
-      models: ModelConfig[];
-    };
     marked?: {
       parse: (content: string) => string;
     };
@@ -36,6 +32,7 @@ export interface PrResult {
 }
 
 export function PrDescriptionApp() {
+  console.log('PrDescriptionApp: Component initializing');
   const { postMessage } = useVSCodeAPI();
   const { isLoading, startLoading, stopLoading } = useLoadingState();
   const { error, setError, clearError } = useErrorState();
@@ -43,11 +40,13 @@ export function PrDescriptionApp() {
   const [branches, setBranches] = useState<string[]>([]);
   const [sourceBranch, setSourceBranch] = useState('');
   const [targetBranch, setTargetBranch] = useState('');
-  const [selectedModel, setSelectedModel] = useState('gpt-4o-mini');
+  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
   const [result, setResult] = useState<PrResult | null>(null);
+  const [branchesLoaded, setBranchesLoaded] = useState(false);
 
-  // Get models from shared config
-  const models = window.sharedModelConfig?.models || [];
+  // Use models from shared configuration (no external loading needed)
+  const models = AVAILABLE_MODELS;
+  console.log('PrDescriptionApp: Using bundled models:', models.length, 'models available');
 
   // Handle messages from extension
   const handleMessage = useCallback((message: ExtensionMessage) => {
@@ -55,6 +54,7 @@ export function PrDescriptionApp() {
       case 'branchesList':
         setBranches(message.branches || []);
         setSourceBranch(message.currentBranch || '');
+        setBranchesLoaded(true);
 
         // Set the selected model if provided from backend
         if (message.languageModel) {
@@ -107,10 +107,12 @@ export function PrDescriptionApp() {
 
   useMessageListener(handleMessage);
 
-  // Initial load - request branches
+  // Initial load - request branches (only once on mount)
   useEffect(() => {
-    postMessage({ command: 'getBranches' });
-  }, [postMessage]);
+    if (!branchesLoaded) {
+      postMessage({ command: 'getBranches' });
+    }
+  }, []); // Empty dependency array to run only once
 
   // Sanitize text content to ensure it's properly displayed
   const sanitizeText = (text: string): string => {
@@ -157,6 +159,8 @@ export function PrDescriptionApp() {
     postMessage(message);
   }, [postMessage]);
 
+  console.log('PrDescriptionApp: Rendering component', { branches, sourceBranch, targetBranch, models });
+  
   return (
     <div className="container">
       <h1 className="heading">PR Description Generator</h1>

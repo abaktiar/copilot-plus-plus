@@ -1,8 +1,8 @@
-import * as vscode from 'vscode';
-import * as path from 'path';
-import { GitService } from '../services/gitService';
-import { CopilotService } from '../services/copilotService';
-import { ConfigService } from '../services/configService';
+import * as vscode from "vscode";
+import * as path from "path";
+import { GitService } from "../services/gitService";
+import { CopilotService } from "../services/copilotService";
+import { ConfigService } from "../services/configService";
 
 export class PrDescriptionPanel {
   public static currentPanel: PrDescriptionPanel | undefined;
@@ -13,7 +13,9 @@ export class PrDescriptionPanel {
   private readonly _copilotService: CopilotService;
 
   public static createOrShow(extensionUri: vscode.Uri) {
-    const column = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
+    const column = vscode.window.activeTextEditor
+      ? vscode.window.activeTextEditor.viewColumn
+      : undefined;
 
     // If we already have a panel, show it
     if (PrDescriptionPanel.currentPanel) {
@@ -23,20 +25,23 @@ export class PrDescriptionPanel {
 
     // Otherwise, create a new panel
     const panel = vscode.window.createWebviewPanel(
-      'prDescriptionGenerator',
-      'PR Description Generator',
+      "prDescriptionGenerator",
+      "PR Description Generator",
       column || vscode.ViewColumn.One,
       {
         enableScripts: true,
-        localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')],
+        localResourceRoots: [vscode.Uri.joinPath(extensionUri, "media")],
         retainContextWhenHidden: true,
       }
     );
     // Set the webview icon using our custom icon file
-    const iconCode = vscode.Uri.joinPath(extensionUri, 'images', 'icon.png');
+    const iconCode = vscode.Uri.joinPath(extensionUri, "images", "icon.png");
     panel.iconPath = iconCode;
 
-    PrDescriptionPanel.currentPanel = new PrDescriptionPanel(panel, extensionUri);
+    PrDescriptionPanel.currentPanel = new PrDescriptionPanel(
+      panel,
+      extensionUri
+    );
   }
 
   private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
@@ -55,14 +60,15 @@ export class PrDescriptionPanel {
     this._panel.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.command) {
-          case 'getBranches':
+          case "getBranches":
             const branches = await this._gitService.getAvailableBranches();
             const currentBranch = await this._gitService.getCurrentBranch();
-            const defaultTargetBranch = this._gitService.getDefaultTargetBranch();
+            const defaultTargetBranch =
+              this._gitService.getDefaultTargetBranch();
             const languageModel = ConfigService.getLanguageModelFamily();
 
             this._panel.webview.postMessage({
-              command: 'branchesList',
+              command: "branchesList",
               branches,
               currentBranch,
               defaultTargetBranch,
@@ -70,27 +76,27 @@ export class PrDescriptionPanel {
             });
             break;
 
-          case 'generatePrDescription':
+          case "generatePrDescription":
             try {
               await this.generatePrDescription(
-                message.sourceBranch, 
-                message.targetBranch, 
+                message.sourceBranch,
+                message.targetBranch,
                 message.modelFamily
               );
             } catch (error) {
               this._panel.webview.postMessage({
-                command: 'error',
+                command: "error",
                 message: error instanceof Error ? error.message : String(error),
               });
             }
             break;
 
-          case 'copyToClipboard':
+          case "copyToClipboard":
             try {
               await vscode.env.clipboard.writeText(message.text);
-              vscode.window.showInformationMessage('Copied to clipboard!');
+              vscode.window.showInformationMessage("Copied to clipboard!");
             } catch (error) {
-              vscode.window.showErrorMessage('Failed to copy to clipboard');
+              vscode.window.showErrorMessage("Failed to copy to clipboard");
             }
             break;
         }
@@ -100,9 +106,13 @@ export class PrDescriptionPanel {
     );
   }
 
-  private async generatePrDescription(sourceBranch: string, targetBranch: string, modelFamily?: string) {
+  private async generatePrDescription(
+    sourceBranch: string,
+    targetBranch: string,
+    modelFamily?: string
+  ) {
     try {
-      this._panel.webview.postMessage({ command: 'startLoading' });
+      this._panel.webview.postMessage({ command: "startLoading" });
 
       const [commits, diff, files] = await Promise.all([
         this._gitService.getCommitsBetweenBranches(sourceBranch, targetBranch),
@@ -111,7 +121,7 @@ export class PrDescriptionPanel {
       ]);
 
       if (!commits.length && !files.length) {
-        throw new Error('No changes detected between the selected branches');
+        throw new Error("No changes detected between the selected branches");
       }
 
       const prContext = {
@@ -122,15 +132,18 @@ export class PrDescriptionPanel {
         files,
       };
 
-      const result = await this._copilotService.generatePrDescription(prContext, modelFamily);
+      const result = await this._copilotService.generatePrDescription(
+        prContext,
+        modelFamily
+      );
       this._panel.webview.postMessage({
-        command: 'generationComplete',
+        command: "generationComplete",
         result,
       });
     } catch (error) {
-      console.error('PR description generation failed:', error);
+      console.error("PR description generation failed:", error);
       this._panel.webview.postMessage({
-        command: 'error',
+        command: "error",
         message: error instanceof Error ? error.message : String(error),
       });
     }
@@ -144,42 +157,47 @@ export class PrDescriptionPanel {
   private _getHtmlForWebview(webview: vscode.Webview) {
     // Get the local path to compiled React bundle and dependencies
     const prDescriptionBundleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'media', 'pr-description', 'pr-description.bundle.js')
+      vscode.Uri.joinPath(
+        this._extensionUri,
+        "media",
+        "pr-description",
+        "pr-description.bundle.js"
+      )
     );
     const sharedBundleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'media', 'shared', 'shared.bundle.js')
+      vscode.Uri.joinPath(
+        this._extensionUri,
+        "media",
+        "shared",
+        "shared.bundle.js"
+      )
     );
     const vendorsBundleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'media', 'shared', 'vendors.bundle.js')
+      vscode.Uri.joinPath(
+        this._extensionUri,
+        "media",
+        "shared",
+        "vendors.bundle.js"
+      )
     );
-    const styleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'media', 'pr-description', 'prDescription.css')
-    );
-    const reactUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'lib', 'react-18.3.1.min.js'));
-    const reactDomUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'lib', 'react-dom-18.3.1.min.js'));
-    const markedUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'media', 'lib', 'marked-4.0.0.min.js')
-    );
-    const modelConfigUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'modelConfig.js'));
 
     // Use a nonce to only allow specific scripts to be run
     const nonce = getNonce();
+
+    // Use nonce-based CSP for secure script execution
+    const scriptSrc = `'nonce-${nonce}'`;
 
     return `<!DOCTYPE html>
             <html lang="en">
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; img-src ${webview.cspSource} https:;">
-                <link href="${styleUri}" rel="stylesheet">
+                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src ${scriptSrc}; img-src ${webview.cspSource} https:;">
                 <title>PR Description Generator</title>
             </head>
             <body>
                 <div id="root"></div>
-                <script nonce="${nonce}" src="${reactUri}"></script>
-                <script nonce="${nonce}" src="${reactDomUri}"></script>
-                <script nonce="${nonce}" src="${markedUri}"></script>
-                <script nonce="${nonce}" src="${modelConfigUri}"></script>
+
                 <script nonce="${nonce}" src="${vendorsBundleUri}"></script>
                 <script nonce="${nonce}" src="${sharedBundleUri}"></script>
                 <script nonce="${nonce}" src="${prDescriptionBundleUri}"></script>
@@ -203,18 +221,22 @@ export class PrDescriptionPanel {
 }
 
 export function registerPrDescriptionCommand(context: vscode.ExtensionContext) {
-  const disposable = vscode.commands.registerCommand('copilot-plus-plus.generatePRDescription', () => {
-    PrDescriptionPanel.createOrShow(context.extensionUri);
-  });
+  const disposable = vscode.commands.registerCommand(
+    "copilot-plus-plus.generatePRDescription",
+    () => {
+      PrDescriptionPanel.createOrShow(context.extensionUri);
+    }
+  );
 
   context.subscriptions.push(disposable);
 }
 
 function getNonce() {
-    let text = '';
-    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    for (let i = 0; i < 32; i++) {
-        text += possible.charAt(Math.floor(Math.random() * possible.length));
-    }
-    return text;
+  let text = "";
+  const possible =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  for (let i = 0; i < 32; i++) {
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
+  }
+  return text;
 }

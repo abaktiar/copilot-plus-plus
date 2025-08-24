@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { VSCodeAPI, WebviewRequest, ExtensionMessage } from '../types';
+import { useEffect, useRef, useState, useCallback } from "react";
+import { VSCodeAPI, WebviewRequest, ExtensionMessage } from "../types";
 
 declare global {
   interface Window {
@@ -7,30 +7,40 @@ declare global {
   }
 }
 
+// Global singleton to ensure VS Code API is only acquired once
+let globalVSCodeAPI: VSCodeAPI | null = null;
+
+function getVSCodeAPI(): VSCodeAPI {
+  if (!globalVSCodeAPI) {
+    globalVSCodeAPI = window.acquireVsCodeApi();
+  }
+  return globalVSCodeAPI;
+}
+
 export function useVSCodeAPI() {
   const vscodeRef = useRef<VSCodeAPI | null>(null);
 
   if (!vscodeRef.current) {
-    vscodeRef.current = window.acquireVsCodeApi();
+    vscodeRef.current = getVSCodeAPI();
   }
 
-  const postMessage = (message: WebviewRequest) => {
+  const postMessage = useCallback((message: WebviewRequest) => {
     vscodeRef.current?.postMessage(message);
-  };
+  }, []);
 
-  const getState = () => {
+  const getState = useCallback(() => {
     return vscodeRef.current?.getState();
-  };
+  }, []);
 
-  const setState = (state: any) => {
+  const setState = useCallback((state: any) => {
     vscodeRef.current?.setState(state);
-  };
+  }, []);
 
   return {
     postMessage,
     getState,
     setState,
-    vscode: vscodeRef.current
+    vscode: vscodeRef.current,
   };
 }
 
@@ -42,8 +52,8 @@ export function useMessageListener(
       onMessage(event.data);
     };
 
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
   }, [onMessage]);
 }
 
@@ -57,7 +67,7 @@ export function useLoadingState(initialState: boolean = false) {
     isLoading,
     startLoading,
     stopLoading,
-    setIsLoading
+    setIsLoading,
   };
 }
 
@@ -71,7 +81,7 @@ export function useErrorState() {
     error,
     setError: setErrorMessage,
     clearError,
-    hasError: error !== null
+    hasError: error !== null,
   };
 }
 
@@ -83,10 +93,11 @@ export function useWebviewState<T>(initialState: T) {
   });
 
   const updateState = (newState: T | ((prevState: T) => T)) => {
-    const updatedState = typeof newState === 'function' 
-      ? (newState as (prevState: T) => T)(state)
-      : newState;
-    
+    const updatedState =
+      typeof newState === "function"
+        ? (newState as (prevState: T) => T)(state)
+        : newState;
+
     setStateInternal(updatedState);
     setState(updatedState);
   };

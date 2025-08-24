@@ -10,8 +10,10 @@ import {
   BranchSelector, 
   Button, 
   LoadingSpinner,
-  Icon
-} from '../shared/components';
+  Icon,
+  AVAILABLE_MODELS,
+  DEFAULT_MODEL
+} from '../shared';
 import { 
   ExtensionMessage, 
   ModelConfig, 
@@ -19,14 +21,6 @@ import {
 } from '../shared/types';
 import { AnalysisConfiguration, ResultsTable, FilterControls } from './components';
 import './styles/breaking-changes.css';
-
-declare global {
-  interface Window {
-    sharedModelConfig?: {
-      models: ModelConfig[];
-    };
-  }
-}
 
 export interface BreakingChangeLocation {
   filePath: string;
@@ -64,24 +58,14 @@ export function BreakingChangesApp() {
   const [currentBranch, setCurrentBranch] = useState('');
   const [sourceBranch, setSourceBranch] = useState('');
   const [targetBranch, setTargetBranch] = useState('');
-  const [selectedModel, setSelectedModel] = useState('gpt-4o-mini');
+  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [filterSeverity, setFilterSeverity] = useState<string>('all');
   const [filterChangeType, setFilterChangeType] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Get models from shared config
-  const models = window.sharedModelConfig?.models || [
-    { id: 'gpt-4o', name: 'GPT-4o' },
-    { id: 'gpt-4o-mini', name: 'GPT-4o-mini' },
-    { id: 'gpt-4.1', name: 'GPT-4.1' },
-    { id: 'gpt-5', name: 'GPT-5' },
-    { id: 'gpt-5-mini', name: 'GPT-5 Mini' },
-    { id: 'claude-3.5-sonnet', name: 'Claude 3.5 Sonnet' },
-    { id: 'claude-sonnet-4', name: 'Claude 4 Sonnet' },
-    { id: 'o1', name: 'o1' },
-    { id: 'o1-mini', name: 'o1-mini' },
-  ];
+  // Use models from shared configuration (no external loading needed)
+  const models = AVAILABLE_MODELS;
 
   // Handle messages from extension
   const handleMessage = useCallback((message: ExtensionMessage) => {
@@ -134,10 +118,10 @@ export function BreakingChangesApp() {
 
   useMessageListener(handleMessage);
 
-  // Initial load - request branches
+  // Initial load - request branches (only once)
   useEffect(() => {
     postMessage({ command: 'getBranches' });
-  }, [postMessage]);
+  }, []); // Empty dependency array to run only once
 
   // Handle analyze button click
   const handleAnalyze = useCallback(() => {
