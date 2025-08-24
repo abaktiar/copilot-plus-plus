@@ -9,22 +9,62 @@ export class PromptService {
   private static readonly COMMIT_INTRO =
     'Review the following git command output to understand the changes you are about to generate a commit message for.';
 
-  private static readonly COMMIT_INSTRUCTION = `Provide an informative commit message for only the code changes outlined in the shared git diff output.
-If provided, the title of the commit message must align with the style of the shared previous commit titles.
-{COMMIT_STYLE_INSTRUCTION}
-{TICKET_INSTRUCTION}
-Format your response as:
-- First line: Commit title following the required style
-- Follow with a blank line
-- Then include a comprehensive, non-redundant bullet point list that:
-  - Starts with a dash (-) character followed by a space
-  - Groups related changes by functionality rather than by file
-  - Uses concise but descriptive language for each point
-  - Mentions specific files only when relevant to understand the change
-  - Emphasizes what was accomplished rather than listing files changed
-  - Avoids repeating information that is already clear from other bullets
+  private static readonly COMMIT_INSTRUCTION = `Generate a commit message ONLY for the actual, functional code changes visible in the provided git diff. If there are no substantive changes (only whitespace/formatting, reordered imports, comment-only edits), DO NOT generate a commit message unless the change is formatting-only, in which case use the appropriate style/type for formatting.
 
-Do not enclose the suggested commit message in backticks. Skip preamble. Only respond with the commit message.`;
+Formatting-only changes policy (important):
+- First, determine if ANY functional changes exist anywhere in the diff (logic, behavior, API signatures, conditionals, queries, data flow, constants, variable names impacting behavior, new/removed code paths, etc.).
+- If functional changes exist in ANY file:
+  - Focus the title and body exclusively on those functional changes.
+  - For files/hunks that are formatting-only (no behavior change), add ONE succinct bullet at the end, e.g., "normalize code formatting in ancillary files". Do NOT generate a separate formatting-focused title.
+  - Do NOT list every line or file mechanically; summarize formatting as a single line unless a small set of files needs explicit mention.
+- If NO functional changes exist (all changes are formatting-only):
+  - Generate a formatting commit using the appropriate style for the configured format (e.g., conventional: "style: ...", gitmoji: "🎨 format: ...", or template-specific equivalent).
+
+How to classify formatting-only hunks (examples that should be treated as non-functional):
+- Pure reflow of long lines / joining or splitting lines without altering code semantics (e.g., logger.log multi-line → single line as in the example provided).
+- Indentation, whitespace, trailing commas/semicolons, quote style, import reorder/grouping with identical bindings, object literal/parameter list wrapping, comment reflow, ESLint/Prettier automatic fixes that do not change behavior.
+- No new identifiers, altered literals that impact behavior, changed operators/conditions, added/removed statements affecting execution, or modified API calls.
+
+Title rules:
+- Single line, imperative mood, active voice, no trailing period
+- Max 72 characters
+- Must follow the required style
+{COMMIT_STYLE_INSTRUCTION}
+{SCOPE_INFERENCE_INSTRUCTION}
+{BREAKING_CHANGE_RULES}
+{TICKET_INSTRUCTION}
+
+Body rules:
+- Add a blank line after the title
+- Use concise bullets that:
+  - Start with "- " and group by functionality (not by file)
+  - Emphasize intent/outcome; mention files only when clarifying
+  - Avoid repeating the title or listing files mechanically
+  - Wrap lines to ~72 chars; keep each bullet ≤100 chars
+  - If functional and formatting-only changes are mixed: include exactly ONE final bullet summarizing formatting (e.g., "normalize formatting in non-functional files"), and keep all other bullets focused on functional changes
+{INCLUDE_TESTS_DOCS_INSTRUCTION}
+
+Footers (include only if provided by context):
+{FOOTERS_INSTRUCTION}
+
+Safety and constraints:
+- Do not include secrets, stack traces, or >1 line of code
+- Do not speculate beyond the visible diff; if truncated, generalize
+- Output only the commit message (no backticks, no preamble)
+
+Validation checklist before returning:
+- Title ≤72 chars, imperative, correct style/scope
+- Bullets grouped by functionality, non-redundant, wrapped
+- Breaking changes correctly denoted with ! and footer when applicable
+- Ticket formatting applied when provided
+- Footers present only when provided by context
+{DIFF_TRUNCATION_NOTE}
+
+Format your response as:
+- First line: commit title
+- Blank line
+- Bullet list (optional but recommended)
+- Optional footers`;
 
   private static readonly CONVENTIONAL_STYLE =
     'Use conventional commit format: <type>(<scope>): <description> where type is one of feat, fix, docs, style, refactor, test, or chore.';
@@ -36,7 +76,23 @@ Do not enclose the suggested commit message in backticks. Skip preamble. Only re
     'The commit message should strictly adhere to the commit format from the shared git commit template.';
 
   private static readonly TICKET_INSTRUCTION =
-    'Include the ticket number "{TICKET}" at the beginning of the commit message in square brackets.';
+    'Include the ticket number "{TICKET}" in the commit title. If using conventional commit format, place it immediately after the scope (if present) in square brackets: <type>(<scope>): [{TICKET}] <description>. Example: "fix(webviews): [HFMS-362] Fix issue". For other formats, place [{TICKET}] at the beginning of the commit message title.';
+
+  // Additional commit helpers/placeholders
+  private static readonly SCOPE_INFERENCE_INSTRUCTION =
+    'Infer <scope> from dominant area of change (e.g., webviews, services, git, types). If ambiguous or cross-cutting, omit scope. Do not invent scopes.';
+
+  private static readonly BREAKING_CHANGE_RULES =
+    'If public APIs or serialized formats change, append ! to the type (e.g., feat! or refactor!) and include a BREAKING CHANGE footer with a 1–3 line migration note.';
+
+  private static readonly INCLUDE_TESTS_DOCS_INSTRUCTION =
+    'When tests or docs are added/updated, include succinct bullets like "add tests for X" or "update docs for Y".';
+
+  private static readonly FOOTERS_INSTRUCTION =
+    'Append recognized footers only if given in context, each on its own line: Closes #<id> | Refs <id> | Co-authored-by: Name <email> | Signed-off-by: Name <email>.';
+
+  private static readonly DIFF_TRUNCATION_NOTE =
+    'If the diff is summarized or truncated, avoid speculation and summarize only visible, certain changes. When both functional and formatting-only changes are present, prioritize functional changes and condense formatting into a single summary bullet.';
 
   // PR Description prompt templates
   private static readonly PR_DESCRIPTION_INTRO =
@@ -255,14 +311,24 @@ ${context.commitTemplate || 'Not available'}`;
         : '';
 
     // Create the messages array
+    // Assemble extra instructions
+    const scopeInstruction = this.SCOPE_INFERENCE_INSTRUCTION;
+    const breakingChangeRules = this.BREAKING_CHANGE_RULES;
+    const includeTestsDocs = this.INCLUDE_TESTS_DOCS_INSTRUCTION;
+    const footersInstruction = this.FOOTERS_INSTRUCTION;
+    const truncationNote = this.DIFF_TRUNCATION_NOTE;
+
     return [
       vscode.LanguageModelChatMessage.User(this.COMMIT_INTRO),
       vscode.LanguageModelChatMessage.User(contextMessage),
       vscode.LanguageModelChatMessage.User(
-        this.COMMIT_INSTRUCTION.replace('{COMMIT_STYLE_INSTRUCTION}', commitStyleInstruction).replace(
-          '{TICKET_INSTRUCTION}',
-          ticketInstruction
-        )
+        this.COMMIT_INSTRUCTION.replace('{COMMIT_STYLE_INSTRUCTION}', commitStyleInstruction)
+          .replace('{SCOPE_INFERENCE_INSTRUCTION}', scopeInstruction)
+          .replace('{BREAKING_CHANGE_RULES}', breakingChangeRules)
+          .replace('{INCLUDE_TESTS_DOCS_INSTRUCTION}', includeTestsDocs)
+          .replace('{FOOTERS_INSTRUCTION}', footersInstruction)
+          .replace('{DIFF_TRUNCATION_NOTE}', truncationNote)
+          .replace('{TICKET_INSTRUCTION}', ticketInstruction)
       ),
     ];
   }

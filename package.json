@@ -153,7 +153,7 @@
         },
         "copilotPlusPlus.ticketPattern": {
           "type": "string",
-          "default": "(?:^|\\/)([A-Z]+-\\d+)(?:\\/|$|[-_])",
+          "default": "([A-Za-z]+)-?(\\d+)",
           "description": "Regex pattern to extract ticket numbers from branch names"
         },
         "copilotPlusPlus.prDescriptionStyle": {

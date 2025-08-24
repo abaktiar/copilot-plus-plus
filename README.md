@@ -124,8 +124,8 @@ You can customize the extension's behavior through the following settings:
   - **o1**: OpenAI o1 model, highest reasoning capabilities
   - **o1-mini**: Smaller, faster OpenAI o1 model
 - `copilotPlusPlus.commitStyle`: Select commit message style (conventional, gitmoji, etc.)
-- `copilotPlusPlus.includeTicketNumber`: Automatically include ticket numbers from branch names
-- `copilotPlusPlus.ticketPattern`: Customize regex pattern for ticket number detection
+- `copilotPlusPlus.includeTicketNumber`: Automatically include ticket numbers from branch names (supports multiple tickets)
+- `copilotPlusPlus.ticketPattern`: Customize regex pattern for ticket number detection (case-insensitive, supports multiple matches)
 - `copilotPlusPlus.prDescriptionStyle`: Choose PR description style (concise, detailed, etc.)
 - `copilotPlusPlus.includeTechnicalDetails`: Include technical details in PR descriptions
 - `copilotPlusPlus.groupCommitsByType`: Group commits by type in PR descriptions
