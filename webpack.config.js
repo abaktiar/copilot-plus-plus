@@ -1,10 +1,11 @@
 const path = require('path');
 
 const production = process.env.NODE_ENV === 'production';
+const isDevelopment = !production;
 
 module.exports = {
   mode: production ? 'production' : 'development',
-  devtool: production ? false : 'inline-source-map',
+  devtool: production ? 'source-map' : 'eval-source-map',
   
   entry: {
     'pr-description': './src/webviews/pr-description/index.tsx',
@@ -15,7 +16,8 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, 'media'),
     filename: '[name]/[name].bundle.js',
-    clean: false // Don't clean the entire media directory as it contains other assets
+    clean: false, // Don't clean the entire media directory as it contains other assets
+    publicPath: '/'
   },
   
   resolve: {
@@ -32,7 +34,11 @@ module.exports = {
         use: {
           loader: 'ts-loader',
           options: {
-            configFile: 'tsconfig.webviews.json'
+            configFile: 'tsconfig.webviews.json',
+            transpileOnly: isDevelopment, // Faster builds in development
+            compilerOptions: {
+              sourceMap: true
+            }
           }
         },
         exclude: [
@@ -44,7 +50,15 @@ module.exports = {
       },
       {
         test: /\.css$/i,
-        use: ['style-loader', 'css-loader']
+        use: [
+          'style-loader',
+          {
+            loader: 'css-loader',
+            options: {
+              sourceMap: true
+            }
+          }
+        ]
       }
     ]
   },
@@ -75,7 +89,34 @@ module.exports = {
     }
   },
   
+  // Enhanced development experience
+  watchOptions: {
+    ignored: /node_modules/,
+    aggregateTimeout: 300,
+    poll: 1000
+  },
+  
+  // Performance hints
+  performance: {
+    hints: production ? 'warning' : false,
+    maxEntrypointSize: 512000,
+    maxAssetSize: 512000
+  },
+  
   stats: {
-    errorDetails: true
+    errorDetails: true,
+    colors: true,
+    modules: false,
+    chunks: false,
+    chunkModules: false,
+    timings: true
+  },
+  
+  // Cache configuration for faster rebuilds
+  cache: {
+    type: 'filesystem',
+    buildDependencies: {
+      config: [__filename]
+    }
   }
 };
