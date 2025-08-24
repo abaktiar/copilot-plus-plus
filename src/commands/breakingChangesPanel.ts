@@ -166,9 +166,15 @@ export class BreakingChangesPanel {
   }
 
   private _getHtmlForWebview(webview: vscode.Webview) {
-    // Get the local path to scripts and css
-    const scriptUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'media', 'breaking-changes', 'breaking-changes-panel.js')
+    // Get the local path to compiled React bundle and dependencies
+    const breakingChangesBundleUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, 'media', 'breaking-changes', 'breaking-changes.bundle.js')
+    );
+    const sharedBundleUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, 'media', 'shared', 'shared.bundle.js')
+    );
+    const vendorsBundleUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, 'media', 'shared', 'vendors.bundle.js')
     );
     const styleUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this._extensionUri, 'media', 'breaking-changes', 'breaking-changes-panel.css')
@@ -202,7 +208,9 @@ export class BreakingChangesPanel {
       <script nonce="${nonce}" src="${reactDomUri}"></script>
       <script nonce="${nonce}" src="${markedUri}"></script>
       <script nonce="${nonce}" src="${modelConfigUri}"></script>
-      <script nonce="${nonce}" src="${scriptUri}"></script>
+      <script nonce="${nonce}" src="${vendorsBundleUri}"></script>
+      <script nonce="${nonce}" src="${sharedBundleUri}"></script>
+      <script nonce="${nonce}" src="${breakingChangesBundleUri}"></script>
     </body>
     </html>`;
   }

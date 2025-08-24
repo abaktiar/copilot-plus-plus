@@ -142,9 +142,15 @@ export class PrDescriptionPanel {
   }
 
   private _getHtmlForWebview(webview: vscode.Webview) {
-    // Get the local path to scripts and css
-    const scriptUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'media', 'pr-description', 'prDescription.js')
+    // Get the local path to compiled React bundle and dependencies
+    const prDescriptionBundleUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, 'media', 'pr-description', 'pr-description.bundle.js')
+    );
+    const sharedBundleUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, 'media', 'shared', 'shared.bundle.js')
+    );
+    const vendorsBundleUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, 'media', 'shared', 'vendors.bundle.js')
     );
     const styleUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this._extensionUri, 'media', 'pr-description', 'prDescription.css')
@@ -174,7 +180,9 @@ export class PrDescriptionPanel {
                 <script nonce="${nonce}" src="${reactDomUri}"></script>
                 <script nonce="${nonce}" src="${markedUri}"></script>
                 <script nonce="${nonce}" src="${modelConfigUri}"></script>
-                <script nonce="${nonce}" src="${scriptUri}"></script>
+                <script nonce="${nonce}" src="${vendorsBundleUri}"></script>
+                <script nonce="${nonce}" src="${sharedBundleUri}"></script>
+                <script nonce="${nonce}" src="${prDescriptionBundleUri}"></script>
             </body>
             </html>`;
   }
