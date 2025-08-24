@@ -71,7 +71,7 @@
     {
       "label": "package-extension",
       "type": "shell",
-      "command": "npx @vscode/vsce package --no-dependencies",
+      "command": "pnpm run package && npx @vscode/vsce package --no-dependencies",
       "group": {
         "kind": "build"
       },

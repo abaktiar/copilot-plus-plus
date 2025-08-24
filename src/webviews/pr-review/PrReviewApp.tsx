@@ -7,7 +7,7 @@ import {
   useWebviewState 
 } from '../shared/hooks/useVSCodeAPI';
 import { LoadingSpinner, AVAILABLE_MODELS, DEFAULT_MODEL } from '../shared';
-import { ExtensionMessage, ModelConfig } from '../shared/types';
+import { ExtensionMessage } from '../shared/types';
 import { ReviewConfiguration } from './components/ReviewConfiguration';
 import { ProgressIndicator } from './components/ProgressIndicator';
 import { ReviewDashboard } from './components/ReviewDashboard';

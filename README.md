@@ -140,17 +140,73 @@ You can customize the extension's behavior through the following settings:
 - `copilotPlusPlus.breakingChanges.includeInternal`: Include internal implementation details in breaking changes analysis
 
 ## Development
-1. Clone the repository
+
+### Prerequisites
+- Node.js (v18 or higher)
+- pnpm (recommended package manager)
+- Visual Studio Code
+
+### Setup
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/abaktiar/copilot-plus-plus.git
+   cd copilot-plus-plus
+   ```
 2. Install dependencies:
    ```bash
    pnpm install
    ```
-3. Run the extension in development mode:
+3. Start development mode with hot reloading:
    ```bash
    pnpm run dev
    ```
 
+### Development Scripts
+- `pnpm run watch` - Watch mode for both webviews and extension (recommended for development)
+- `pnpm run build` - Build both webviews and extension
+- `pnpm run build:webviews` - Build React webviews only
+- `pnpm run build:extension` - Build extension backend only
+- `pnpm run test:all` - Run all tests (webviews + extension)
+- `pnpm run test:webviews` - Run React component tests
+- `pnpm run dev:fast` - Fast development mode with optimized builds
+
+### Architecture
+The extension is built with a modern architecture:
+- **Backend**: TypeScript-based VS Code extension API
+- **Frontend**: React 19.1 with TypeScript for all webview panels  
+- **Build System**: Webpack for webviews, esbuild for extension
+- **Testing**: Jest for webview tests, VS Code Test for extension tests
+- **Type Safety**: Full TypeScript coverage across frontend and backend
+
 ## Release Notes
+
+### 0.1.0 (2025-08-24) - Major Frontend Architecture Overhaul
+This major release represents a complete modernization of the extension's frontend architecture with significant improvements to user experience, performance, and maintainability.
+
+#### 🚀 Major Architecture Changes
+- **Complete Frontend Migration to React/TypeScript**: Migrated all webview panels from raw HTML/JS to modern React with TypeScript for better maintainability and type safety
+- **Shared Component Library**: Created a centralized component library foundation for consistent UI across all features
+- **Enhanced Build System**: Integrated React build pipeline with extension development workflow for streamlined development
+- **Comprehensive Testing Framework**: Added extensive webview tests with centralized model configuration and hardened build/CSP policies
+
+#### ✨ Enhanced User Interface
+- **Modernized UI Components**: All panels now use React-based components with improved styling and responsiveness
+- **Shared Dropdowns and Controls**: Branch and model selection dropdowns are now standardized across all features
+- **Improved PR Description UI**: Enhanced PR description generation interface with better controls and user feedback
+- **Tightened PR Review UI**: Streamlined PR review interface with better navigation and issue presentation
+
+#### 🔧 Technical Improvements
+- **Integrated Markdown Rendering**: Added marked library for proper PR markdown rendering with test mocks
+- **Enhanced Ticket Extraction**: Support for multiple case-insensitive ticket number extraction from branch names
+- **Cleaner Architecture**: Removed legacy webview assets and sidebar implementations for cleaner codebase
+- **Improved Development Workflow**: Enhanced build processes and development experience with better error handling
+
+#### 🧪 Quality Assurance
+- **Comprehensive Test Coverage**: Added extensive tests for webview functionality and communication
+- **Type Safety**: Full TypeScript implementation across all frontend components
+- **Build Hardening**: Enhanced Content Security Policy (CSP) and build validation
+
+This release marks a significant milestone in the extension's evolution, providing a solid foundation for future feature development with modern web technologies.
 
 ### 0.0.17 (2025-08-15)
 - Added GPT-5 (`gpt-5`) and GPT-5 Mini (`gpt-5-mini`) to the available language model selection

@@ -2,6 +2,53 @@
 All notable changes to the "copilot-plus-plus" extension will be documented in this file.
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.1.0] - 2025-08-24 - Major Frontend Architecture Overhaul
+This major release represents a complete modernization of the extension's frontend architecture with significant improvements to user experience, performance, and maintainability.
+
+### Added
+- Complete React/TypeScript frontend migration for all webview panels
+- Shared component library foundation for consistent UI across features
+- Comprehensive webview testing framework with Jest and React Testing Library
+- Enhanced build system integrating React with extension development workflow
+- Markdown rendering support using marked library with proper test mocks
+- Multiple case-insensitive ticket extraction support from branch names
+- Centralized model configuration across all webview components
+- Enhanced Content Security Policy (CSP) and build validation
+- Modern development workflow with hot reloading and optimized builds
+
+### Changed
+- **BREAKING**: Complete rewrite of all webview panels from raw HTML/JS to React with TypeScript
+- Migrated Breaking Changes Analyzer to JSX/TypeScript with improved UI
+- Migrated PR Description Generator to JSX/TypeScript with enhanced controls
+- Migrated PR Review Assistant to JSX/TypeScript with better navigation
+- Standardized branch and model selection dropdowns across all features
+- Enhanced PR description UI with improved controls and user feedback
+- Streamlined PR review interface with tighter UI and better issue presentation
+- Upgraded to React 19.1 with latest TypeScript support
+- Improved development scripts for better developer experience
+
+### Removed
+- Legacy webview assets and raw HTML/JS implementations
+- Legacy sidebar implementation in favor of standalone panels
+- Legacy media breaking-changes panel and model configuration
+- Enhancement plan document for streamlined PR review architecture
+- Unused and deprecated webview files
+
+### Fixed
+- Improved error handling and validation across webview components
+- Enhanced type safety with full TypeScript coverage
+- Better build reliability with hardened CSP policies
+- Resolved legacy asset cleanup and improved .gitignore patterns
+
+### Technical Details
+- **Frontend Stack**: React 19.1, TypeScript, Webpack
+- **Testing**: Jest with React Testing Library and JSDOM
+- **Build System**: Webpack for webviews, esbuild for extension
+- **Development**: Hot reloading, watch mode, comprehensive type checking
+- **Architecture**: Shared component library, centralized configuration, modern development practices
+
+This release establishes a solid foundation for future feature development with modern web technologies and significantly improves the maintainability and user experience of the extension.
+
 ## [0.0.17] - 2025-08-15
 ### Added
 - Added GPT-5 (`gpt-5`) and GPT-5 Mini (`gpt-5-mini`) to the available language model selection
