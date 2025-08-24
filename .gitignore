@@ -7,5 +7,14 @@ node_modules
 contextMessage.txt
 temp
 debug-logs
-media
+# Compiled React bundles and build artifacts
+media/**/*.bundle.js
+media/**/*.bundle.js.map
+media/**/*.LICENSE.txt
+
+# Keep library files and configuration files tracked
+!media/lib/
+!media/modelConfig.js
+!media/sidebar.css
+!media/sidebar.js
 
