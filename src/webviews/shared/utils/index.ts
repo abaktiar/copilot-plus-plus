@@ -55,8 +55,8 @@ export function formatError(error: unknown): string {
     return error;
   }
   return 'An unknown error occurred';
-}export
- function handleWebviewMessage<T = any>(
+}
+export function handleWebviewMessage<T = any>(
   message: any,
   expectedCommand: string,
   onSuccess: (data: T) => void,
