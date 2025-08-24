@@ -83,6 +83,69 @@ h4 {
   gap: 8px;
 }
 
+.heading {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 500;
+  opacity: 0.95;
+  letter-spacing: -0.02em;
+}
+
+.model-selector-top {
+  flex-shrink: 0;
+}
+
+/* Branch Selector Card */
+.branch-selector-card {
+  background: color-mix(in srgb, var(--vscode-editor-background) 97%, var(--vscode-button-background));
+  border: 1px solid color-mix(in srgb, var(--vscode-widget-border) 85%, var(--vscode-button-background));
+  border-radius: var(--border-radius);
+  box-shadow: var(--card-shadow);
+  padding: 16px;
+  margin-bottom: 24px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 16px;
+}
+
+.branch-flow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.branch-arrow {
+  color: color-mix(in srgb, var(--vscode-foreground) 75%, transparent);
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.generate-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 700px) {
+  .branch-selector-card {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .generate-section {
+    justify-self: center;
+  }
+}
+
+.title-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .title-section h2 {
   margin: 0;
   padding: 0;

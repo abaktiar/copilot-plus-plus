@@ -3,4 +3,6 @@ export { LoadingSpinner } from './LoadingSpinner';
 export { Button } from './Button';
 export { ModelSelector } from './ModelSelector';
 export { BranchSelector } from './BranchSelector';
+export { BranchDropdown } from './BranchDropdown';
+export { ModelDropdown } from './ModelDropdown';
 export { Icon } from './Icon';
