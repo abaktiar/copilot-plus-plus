@@ -5,17 +5,9 @@ import {
   useLoadingState, 
   useErrorState 
 } from '../shared/hooks/useVSCodeAPI';
-import { 
-  LoadingSpinner,
-  AVAILABLE_MODELS,
-  DEFAULT_MODEL
-} from '../shared';
-import { 
-  ExtensionMessage, 
-  ModelConfig, 
-  WebviewRequest 
-} from '../shared/types';
-import { BranchSelection, GenerationForm, ResultDisplay } from './components';
+import { LoadingSpinner, AVAILABLE_MODELS, DEFAULT_MODEL, Button } from '../shared';
+import { ExtensionMessage, WebviewRequest } from '../shared/types';
+import { BranchSelection, BranchDropdown, ModelDropdown, GenerationForm, ResultDisplay } from './components';
 import './styles/pr-description.css';
 
 declare global {
@@ -49,61 +41,70 @@ export function PrDescriptionApp() {
   console.log('PrDescriptionApp: Using bundled models:', models.length, 'models available');
 
   // Handle messages from extension
-  const handleMessage = useCallback((message: ExtensionMessage) => {
-    switch (message.command) {
-      case 'branchesList':
-        setBranches(message.branches || []);
-        setSourceBranch(message.currentBranch || '');
-        setBranchesLoaded(true);
+  const handleMessage = useCallback(
+    (message: ExtensionMessage) => {
+      switch (message.command) {
+        case 'branchesList':
+          setBranches(message.branches || []);
+          setSourceBranch(message.currentBranch || '');
+          setBranchesLoaded(true);
 
-        // Set the selected model if provided from backend
-        if (message.languageModel) {
-          setSelectedModel(message.languageModel);
-        }
+          // Set the selected model if provided from backend
+          if (message.languageModel) {
+            setSelectedModel(message.languageModel);
+          }
 
-        // First check for defaultTargetBranch from config
-        if (message.defaultTargetBranch && message.branches?.includes(message.defaultTargetBranch)) {
-          setTargetBranch(message.defaultTargetBranch);
-        } else {
-          // Fall back to main/master/develop if available
-          const defaultTarget = message.branches?.find((b) =>
-            ['main', 'master', 'develop'].includes(b.toLowerCase())
-          );
-          setTargetBranch(defaultTarget || '');
-        }
-        break;
-        
-      case 'startLoading':
-        startLoading();
-        clearError();
-        setResult(null);
-        break;
-        
-      case 'stopLoading':
-        stopLoading();
-        break;
-        
-      case 'error':
-        setError(message.error || 'An unknown error occurred');
-        stopLoading();
-        break;
-        
-      case 'generationComplete':
-        // Ensure we have valid data before updating the state
-        if (message.result) {
-          // Sanitize the result to ensure it has the correct properties
-          const sanitizedResult: PrResult = {
-            title: sanitizeText(message.result.title || ''),
-            description: sanitizeText(message.result.description || ''),
-          };
-          setResult(sanitizedResult);
-        } else {
-          setError('Received empty result from the server');
-        }
-        stopLoading();
-        break;
-    }
-  }, [startLoading, stopLoading, setError, clearError]);
+          // First check for defaultTargetBranch from config
+          if (message.defaultTargetBranch && message.branches?.includes(message.defaultTargetBranch)) {
+            setTargetBranch(message.defaultTargetBranch);
+          } else {
+            // Fall back to main/master/develop if available
+            const defaultTarget = message.branches?.find((b) =>
+              ['main', 'master', 'develop'].includes(b.toLowerCase())
+            );
+            setTargetBranch(defaultTarget || '');
+          }
+          break;
+        case 'generating':
+          // Support legacy/alternate loading signal used by tests or backend
+          startLoading();
+          clearError();
+          setResult(null);
+          break;
+
+        case 'startLoading':
+          startLoading();
+          clearError();
+          setResult(null);
+          break;
+
+        case 'stopLoading':
+          stopLoading();
+          break;
+
+        case 'error':
+          setError(message.error || 'An unknown error occurred');
+          stopLoading();
+          break;
+
+        case 'generationComplete':
+          // Ensure we have valid data before updating the state
+          if (message.result) {
+            // Sanitize the result to ensure it has the correct properties
+            const sanitizedResult: PrResult = {
+              title: sanitizeText(message.result.title || ''),
+              description: sanitizeText(message.result.description || ''),
+            };
+            setResult(sanitizedResult);
+          } else {
+            setError('Received empty result from the server');
+          }
+          stopLoading();
+          break;
+      }
+    },
+    [startLoading, stopLoading, setError, clearError]
+  );
 
   useMessageListener(handleMessage);
 
@@ -135,18 +136,31 @@ export function PrDescriptionApp() {
       setError('Please select both source and target branches');
       return;
     }
-    
+
     clearError();
     const message: WebviewRequest = {
       command: 'generatePrDescription',
       sourceBranch,
       targetBranch,
-      data: { modelFamily: selectedModel }
+      data: { modelFamily: selectedModel },
     };
     // The backend expects these properties directly on the message object
     (message as any).modelFamily = selectedModel;
     postMessage(message);
   }, [sourceBranch, targetBranch, selectedModel, postMessage, setError, clearError]);
+
+  // Cancel generation
+  const handleCancel = useCallback(() => {
+    postMessage({ command: 'cancelGeneration' } as any);
+    stopLoading();
+  }, [postMessage, stopLoading]);
+
+  // Swap source and target branches
+  const handleSwap = useCallback(() => {
+    const temp = sourceBranch;
+    setSourceBranch(targetBranch);
+    setTargetBranch(temp);
+  }, [sourceBranch, targetBranch]);
 
   // Copy to clipboard
   const handleCopy = useCallback((text: string) => {
@@ -162,45 +176,91 @@ export function PrDescriptionApp() {
   console.log('PrDescriptionApp: Rendering component', { branches, sourceBranch, targetBranch, models });
   
   return (
-    <div className="container">
-      <h1 className="heading">PR Description Generator</h1>
+    <div className='container'>
+      <div className='header-row'>
+        <h1 className='heading'>PR Description Generator</h1>
 
-      <BranchSelection
-        branches={branches}
-        sourceBranch={sourceBranch}
-        targetBranch={targetBranch}
-        onSourceBranchChange={setSourceBranch}
-        onTargetBranchChange={setTargetBranch}
-      />
+        {/* Language Model Selector in top right */}
+        <div className='model-selector-top'>
+          <ModelDropdown models={models} selectedModel={selectedModel} onModelChange={setSelectedModel} />
+        </div>
+      </div>
 
-      <GenerationForm
-        models={models}
-        selectedModel={selectedModel}
-        onModelChange={setSelectedModel}
-        onGenerate={handleGenerate}
-        isLoading={isLoading}
-        canGenerate={!!(sourceBranch && targetBranch)}
-      />
+      {/* Interactive Branch Selector with Generate Button */}
+      {sourceBranch && targetBranch && (
+        <div className='branch-selector-card'>
+          <div className='branch-flow'>
+            <BranchDropdown
+              branches={branches}
+              selectedBranch={sourceBranch}
+              onBranchChange={setSourceBranch}
+              label='source'
+              placeholder='Select source branch'
+            />
+            <span className='branch-arrow'>→</span>
+            <BranchDropdown
+              branches={branches.filter((b) => b !== sourceBranch)}
+              selectedBranch={targetBranch}
+              onBranchChange={setTargetBranch}
+              label='target'
+              placeholder='Select target branch'
+            />
+          </div>
 
-      {error && (
-        <div className="error">
-          {error}
+          <div className='generate-section'>
+            <Button
+              variant='primary'
+              onClick={handleGenerate}
+              disabled={isLoading || !!(sourceBranch && targetBranch) === false}
+              loading={isLoading}
+              className='generate-button'>
+              {isLoading ? (
+                'Generating...'
+              ) : (
+                <>
+                  <span className='icon'>✨</span>
+                  Generate PR Description
+                </>
+              )}
+            </Button>
+
+            {isLoading && (
+              <Button variant='secondary' onClick={handleCancel} className='cancel-button'>
+                Cancel
+              </Button>
+            )}
+          </div>
         </div>
       )}
 
-      {isLoading && (
-        <div className="loading">
-          <LoadingSpinner size="medium" />
-          <div>Analyzing changes and generating description...</div>
-        </div>
-      )}
+      <section className='content'>
+        {error && (
+          <div className='error'>
+            <strong className='error-label'>Error</strong>
+            <span className='error-message'>{error}</span>
+          </div>
+        )}
 
-      {result && (
-        <ResultDisplay
-          result={result}
-          onCopy={handleCopy}
-        />
-      )}
+        {isLoading && (
+          <div className='loading'>
+            <LoadingSpinner size='medium' />
+            <div>Analyzing changes and generating description...</div>
+          </div>
+        )}
+
+        {!isLoading && !error && !result && (
+          <div className='empty-state'>
+            <div className='empty-emoji'>📝</div>
+            <h3>Generate a polished PR description</h3>
+            <p>
+              Select source and target branches, choose a model, then click Generate. We’ll craft a clear, review-ready
+              PR title and description.
+            </p>
+          </div>
+        )}
+
+        {result && <ResultDisplay result={result} onCopy={handleCopy} />}
+      </section>
     </div>
   );
 }

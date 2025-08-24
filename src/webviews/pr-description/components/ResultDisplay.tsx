@@ -30,7 +30,7 @@ export function ResultDisplay({ result, onCopy }: ResultDisplayProps) {
             className="copy-button"
             onClick={() => onCopy(result.title)}
           >
-            Copy
+            Copy Title
           </button>
         </div>
         <div className="result-content title-content">
@@ -45,7 +45,7 @@ export function ResultDisplay({ result, onCopy }: ResultDisplayProps) {
             className="copy-button"
             onClick={() => onCopy(result.description)}
           >
-            Copy
+            Copy Description
           </button>
         </div>
         <div 
@@ -57,7 +57,7 @@ export function ResultDisplay({ result, onCopy }: ResultDisplayProps) {
       <div className="copy-all">
         <button
           className="copy-all-button"
-          onClick={() => onCopy(`# ${result.title}\n\n${result.description}`)}
+          onClick={() => onCopy(`${result.title}\n\n${result.description}`)}
         >
           Copy Complete PR (Title + Description)
         </button>
