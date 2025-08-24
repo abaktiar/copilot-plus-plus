@@ -15,6 +15,7 @@ export interface ExtensionMessage extends WebviewMessage {
     | "error"
     | "progressUpdate"
     | "startLoading"
+    | "generating"
     | "stopLoading"
     | "generationComplete"
     | "analyzing"

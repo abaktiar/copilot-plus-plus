@@ -1,3 +1,7 @@
+/* Remove extra bottom margin inside grid for tight alignment */
+.generation-form .model-selector { margin: 0; }
+.generation-form .model-selector label { font-weight: 600; opacity: 0.95; }
+
 :root {
     --container-padding: 24px;
     --input-padding-vertical: 8px;
@@ -10,6 +14,8 @@
     --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
     --gradient-primary: linear-gradient(145deg, var(--vscode-button-background), color-mix(in srgb, var(--vscode-button-background) 85%, black));
     --gradient-hover: linear-gradient(145deg, color-mix(in srgb, var(--vscode-button-background) 85%, white), var(--vscode-button-background));
+    --card-bg: color-mix(in srgb, var(--vscode-editor-background) 97%, var(--vscode-button-background));
+    --muted-fg: color-mix(in srgb, var(--vscode-foreground) 75%, transparent);
 }
 
 body {
@@ -23,9 +29,9 @@ body {
 }
 
 .container {
-    max-width: 800px;
+    max-width: 100%;
     margin: 0 auto;
-    padding: 24px 0;
+    padding: 16px;
     animation: fadeIn 0.3s ease-out;
 }
 
@@ -37,43 +43,300 @@ body {
 .heading {
     font-size: 24px;
     font-weight: 500;
-    margin-bottom: 24px;
-    border-bottom: 1px solid var(--vscode-panel-border);
-    padding-bottom: 12px;
+    margin: 0;
     opacity: 0.95;
     letter-spacing: -0.02em;
 }
 
-.branch-selection {
+/* Header Row */
+.header-row {
     display: flex;
-    flex-direction: column;
-    gap: 18px;
-    margin-bottom: 28px;
-    padding: 24px;
-    background: color-mix(in srgb, var(--vscode-editor-background) 97%, var(--vscode-button-background));
-    border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 90%, var(--vscode-button-background));
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-sm);
-    transition: all var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--vscode-panel-border);
 }
 
-.branch-selection:hover {
-    box-shadow: var(--shadow-md);
-    border-color: color-mix(in srgb, var(--vscode-panel-border) 75%, var(--vscode-button-background));
-    transform: translateY(-1px);
+.model-selector-top {
+    flex-shrink: 0;
 }
 
-.generation-form {
+/* Controls Stack */
+.controls-stack {
     display: flex;
     flex-direction: column;
-    gap: 18px;
-    margin-bottom: 28px;
-    padding: 24px;
-    background: color-mix(in srgb, var(--vscode-editor-background) 97%, var(--vscode-button-background));
-    border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 90%, var(--vscode-button-background));
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.content { min-width: 0; }
+
+/* Remove extra bottom margin inside grid for tight alignment */
+.generation-form .model-selector { margin: 0; }
+.generation-form .model-selector label { font-weight: 600; opacity: 0.95; }
+
+/* Branch Selector Card */
+.branch-selector-card {
+    background: var(--card-bg);
+    border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 85%, var(--vscode-button-background));
     border-radius: var(--border-radius);
     box-shadow: var(--shadow-sm);
-    transition: all var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 16px;
+    margin-bottom: 12px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 16px;
+}
+
+.branch-flow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.generate-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+@media (max-width: 700px) {
+    .branch-selector-card {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .generate-section {
+        justify-self: center;
+    }
+}
+
+.branch-arrow {
+    color: var(--muted-fg);
+    font-weight: 500;
+    font-size: 16px;
+}
+
+/* Branch Dropdown */
+.branch-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.branch-button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: color-mix(in srgb, var(--vscode-input-background) 98%, var(--vscode-button-background));
+    border: 1px solid color-mix(in srgb, var(--vscode-input-border) 90%, transparent);
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    font-size: 13px;
+    transition: all var(--transition-speed) ease;
+    min-width: 120px;
+    max-width: 350px;
+}
+
+.branch-button:hover {
+    background: color-mix(in srgb, var(--vscode-input-background) 95%, var(--vscode-button-background));
+    border-color: var(--vscode-input-border);
+}
+
+.branch-button.active {
+    border-color: var(--vscode-focusBorder);
+    box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+}
+
+.branch-label {
+    font-size: 11px;
+    color: var(--muted-fg);
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.branch-name {
+    font-family: var(--vscode-editor-font-family);
+    font-size: 13px;
+    color: var(--vscode-foreground);
+    background: transparent;
+    flex: 1;
+    min-width: 0;
+    font-weight: 600;
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dropdown-arrow {
+    font-size: 10px;
+    color: var(--muted-fg);
+    transition: transform var(--transition-speed) ease;
+}
+
+.branch-button.active .dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+.branch-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 2px;
+    background: var(--vscode-dropdown-background);
+    border: 1px solid var(--vscode-dropdown-border);
+    border-radius: var(--border-radius-sm);
+    box-shadow: var(--shadow-lg);
+    z-index: 1000;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.branch-option {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--vscode-dropdown-foreground);
+    font-family: var(--vscode-editor-font-family);
+    transition: background-color var(--transition-speed) ease;
+}
+
+.branch-option:hover {
+    background: var(--vscode-list-hoverBackground);
+}
+
+.branch-option.selected {
+    background: var(--vscode-list-activeSelectionBackground);
+    color: var(--vscode-list-activeSelectionForeground);
+}
+
+@media (max-width: 600px) {
+    .branch-selector-card {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .branch-flow {
+        justify-content: center;
+    }
+}
+
+/* Model Dropdown */
+.model-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.model-button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: color-mix(in srgb, var(--vscode-input-background) 98%, var(--vscode-button-background));
+    border: 1px solid color-mix(in srgb, var(--vscode-input-border) 90%, transparent);
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    font-size: 13px;
+    transition: all var(--transition-speed) ease;
+    min-width: 140px;
+    max-width: 220px;
+}
+
+.model-button:hover {
+    background: color-mix(in srgb, var(--vscode-input-background) 95%, var(--vscode-button-background));
+    border-color: var(--vscode-input-border);
+}
+
+.model-button.active {
+    border-color: var(--vscode-focusBorder);
+    box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+}
+
+.model-label {
+    font-size: 11px;
+    color: var(--muted-fg);
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.model-name {
+    font-family: var(--vscode-editor-font-family);
+    font-size: 12px;
+    color: var(--vscode-foreground);
+    background: transparent;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.model-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 2px;
+    background: var(--vscode-dropdown-background);
+    border: 1px solid var(--vscode-dropdown-border);
+    border-radius: var(--border-radius-sm);
+    box-shadow: var(--shadow-lg);
+    z-index: 1000;
+    max-height: 250px;
+    overflow-y: auto;
+    min-width: 280px;
+}
+
+.model-option {
+    display: block;
+    width: 100%;
+    padding: 10px 12px;
+    background: transparent;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--vscode-dropdown-foreground);
+    font-family: inherit;
+    transition: background-color var(--transition-speed) ease;
+}
+
+.model-option:hover {
+    background: var(--vscode-list-hoverBackground);
+}
+
+.model-option.selected {
+    background: var(--vscode-list-activeSelectionBackground);
+    color: var(--vscode-list-activeSelectionForeground);
+}
+
+.model-option-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.model-option-name {
+    font-weight: 500;
+    font-size: 13px;
+}
+
+.model-option-desc {
+    font-size: 11px;
+    opacity: 0.8;
+    color: var(--muted-fg);
 }
 
 .generation-form:hover {
@@ -83,7 +346,7 @@ body {
 }
 
 .generate-button {
-    margin-top: 16px;
+    margin-top: 0;
     background: var(--gradient-primary);
     color: var(--vscode-button-foreground);
     border: none;
@@ -99,6 +362,11 @@ body {
     gap: 8px;
     font-size: 13px;
     box-shadow: var(--shadow-sm);
+    white-space: nowrap;
+}
+
+.cancel-button {
+    height: 36px;
 }
 
 .generate-button:hover {
@@ -157,29 +425,28 @@ body {
 .results {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 16px;
     animation: fadeIn 0.4s ease-out;
 }
 
 .result-section {
-    border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 90%, var(--vscode-button-background));
+    border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 85%, var(--vscode-button-background));
     border-radius: var(--border-radius);
     overflow: hidden;
-    background: color-mix(in srgb, var(--vscode-editor-background) 97%, var(--vscode-button-background));
+    background: var(--card-bg);
     box-shadow: var(--shadow-sm);
-    transition: all var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+    transition: box-shadow var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .result-section:hover {
     box-shadow: var(--shadow-md);
-    transform: translateY(-1px);
 }
 
 .result-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: color-mix(in srgb, var(--vscode-editor-background) 95%, var(--vscode-button-background));
+    background-color: color-mix(in srgb, var(--card-bg) 92%, var(--vscode-button-background));
     padding: 12px 16px;
     border-bottom: 1px solid color-mix(in srgb, var(--vscode-panel-border) 90%, var(--vscode-button-background));
 }
@@ -193,7 +460,7 @@ body {
 }
 
 .result-content {
-    padding: 18px;
+    padding: 16px 18px;
     background-color: var(--vscode-editor-background);
     white-space: pre-wrap;
     line-height: 1.6;
@@ -206,7 +473,7 @@ body {
 }
 
 .description-content {
-    max-height: 500px;
+    max-height: 56vh;
     overflow-y: auto;
     padding-right: 8px;
 }
@@ -240,6 +507,7 @@ body {
     display: flex;
     align-items: center;
     gap: 6px;
+    white-space: nowrap;
 }
 
 .copy-button:before {
@@ -261,7 +529,7 @@ body {
 .copy-all {
     display: flex;
     justify-content: flex-end;
-    margin-top: 20px;
+    margin-top: 8px;
 }
 
 .copy-all-button {
@@ -272,6 +540,7 @@ body {
     font-weight: 500;
     border: none;
     box-shadow: var(--shadow-sm);
+    align-self: center;
 }
 
 .copy-all-button:before {
@@ -358,6 +627,21 @@ body {
     opacity: 0.8;
     border-left: 3px solid var(--vscode-button-background);
     margin: 0 0 16px 0;
-    background: color-mix(in srgb, var(--vscode-editor-background) 97%, var(--vscode-button-background));
+    background: color-mix(in srgb, var(--card-bg) 94%, var(--vscode-button-background));
     border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0;
 }
+
+/* Empty State */
+.empty-state {
+    margin-top: 24px;
+    padding: 28px;
+    border: 1px dashed color-mix(in srgb, var(--vscode-panel-border) 70%, transparent);
+    border-radius: var(--border-radius);
+    background: color-mix(in srgb, var(--card-bg) 96%, var(--vscode-button-background));
+    text-align: center;
+}
+.empty-state h3 {
+    margin: 8px 0 6px;
+}
+.empty-state p { color: var(--muted-fg); margin: 0; }
+.empty-emoji { font-size: 28px; }
