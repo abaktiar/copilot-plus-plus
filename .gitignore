@@ -15,6 +15,4 @@ media/**/*.LICENSE.txt
 # Keep library files and configuration files tracked
 !media/lib/
 !media/modelConfig.js
-!media/sidebar.css
-!media/sidebar.js
 

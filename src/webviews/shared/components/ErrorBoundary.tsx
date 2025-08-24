@@ -1,5 +1,9 @@
 import React from 'react';
-import { ErrorBoundaryProps } from '../types';
+
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
+}
 
 interface State {
   hasError: boolean;
@@ -44,23 +48,29 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, State> {
       }
 
       return (
-        <div className="error-boundary">
-          <div className="error-content">
-            <h3>Something went wrong</h3>
-            <p>An error occurred while rendering this component.</p>
-            {this.state.error && (
-              <details className="error-details">
-                <summary>Error details</summary>
-                <pre>{this.state.error.message}</pre>
-              </details>
-            )}
-            <button 
-              className="btn btn-primary"
-              onClick={() => this.setState({ hasError: false, error: undefined })}
-            >
-              Try again
-            </button>
-          </div>
+        <div style={{ padding: '20px', textAlign: 'center' }}>
+          <h3>Something went wrong</h3>
+          <p>An error occurred while rendering this component.</p>
+          {this.state.error && (
+            <details style={{ marginTop: '10px', textAlign: 'left' }}>
+              <summary>Error details</summary>
+              <pre style={{ fontSize: '12px', overflow: 'auto' }}>{this.state.error.message}</pre>
+            </details>
+          )}
+          <button 
+            style={{ 
+              marginTop: '10px', 
+              padding: '8px 16px', 
+              backgroundColor: '#007acc', 
+              color: 'white', 
+              border: 'none', 
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+            onClick={() => this.setState({ hasError: false, error: undefined })}
+          >
+            Try again
+          </button>
         </div>
       );
     }

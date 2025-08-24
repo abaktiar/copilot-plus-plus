@@ -96,25 +96,6 @@
         }
       ]
     },
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "copilot-plus-plus",
-          "title": "Copilot++",
-          "icon": "$(code)"
-        }
-      ]
-    },
-    "views": {
-      "copilot-plus-plus": [
-        {
-          "id": "copilotPlusPlusView",
-          "name": "PR Description Generator",
-          "type": "webview",
-          "icon": "$(code)"
-        }
-      ]
-    },
     "configuration": {
       "title": "Copilot++",
       "properties": {
