@@ -8,7 +8,7 @@ export interface WebviewMessage {
 
 // Extension → Webview messages
 export interface ExtensionMessage extends WebviewMessage {
-  command: 'branchesList' | 'result' | 'error' | 'progressUpdate' | 'startLoading' | 'stopLoading' | 'generationComplete';
+  command: 'branchesList' | 'result' | 'error' | 'progressUpdate' | 'startLoading' | 'stopLoading' | 'generationComplete' | 'analyzing' | 'analysisResult';
   branches?: string[];
   currentBranch?: string;
   defaultTargetBranch?: string;
@@ -21,12 +21,14 @@ export interface ExtensionMessage extends WebviewMessage {
 
 // Webview → Extension messages  
 export interface WebviewRequest extends WebviewMessage {
-  command: 'getBranches' | 'generateDescription' | 'generatePrDescription' | 'reviewChanges' | 'analyzeBreaking' | 'copyToClipboard' | 'error';
+  command: 'getBranches' | 'generateDescription' | 'generatePrDescription' | 'reviewChanges' | 'analyzeBreaking' | 'analyzeBreakingChanges' | 'copyToClipboard' | 'error' | 'openFile';
   sourceBranch?: string;
   targetBranch?: string;
   selectedModel?: string;
   modelFamily?: string;
   text?: string;
+  filePath?: string;
+  lineNumber?: number;
 }
 
 export interface ProgressUpdate {
