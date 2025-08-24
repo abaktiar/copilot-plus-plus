@@ -1,10 +1,10 @@
-import * as vscode from 'vscode';
-import * as path from 'path';
-import { GitService } from '../services/gitService';
-import { CopilotService } from '../services/copilotService';
-import { ConfigService } from '../services/configService';
-import { PrReviewService } from '../services/prReview/prReviewService';
-import { ReviewProgressUpdate } from '../services/prReview/reviewQueueManager';
+import * as vscode from "vscode";
+import * as path from "path";
+import { GitService } from "../services/gitService";
+import { CopilotService } from "../services/copilotService";
+import { ConfigService } from "../services/configService";
+import { PrReviewService } from "../services/prReview/prReviewService";
+import { ReviewProgressUpdate } from "../services/prReview/reviewQueueManager";
 
 export class PrReviewPanel {
   public static currentPanel: PrReviewPanel | undefined;
@@ -16,7 +16,9 @@ export class PrReviewPanel {
   private readonly _prReviewService: PrReviewService;
 
   public static createOrShow(extensionUri: vscode.Uri) {
-    const column = vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : undefined;
+    const column = vscode.window.activeTextEditor
+      ? vscode.window.activeTextEditor.viewColumn
+      : undefined;
 
     // If we already have a panel, show it
     if (PrReviewPanel.currentPanel) {
@@ -26,18 +28,18 @@ export class PrReviewPanel {
 
     // Otherwise, create a new panel
     const panel = vscode.window.createWebviewPanel(
-      'prReviewAssistant',
-      'PR Review Assistant',
+      "prReviewAssistant",
+      "PR Review Assistant",
       column || vscode.ViewColumn.One,
       {
         enableScripts: true,
-        localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')],
+        localResourceRoots: [vscode.Uri.joinPath(extensionUri, "media")],
         retainContextWhenHidden: true,
       }
     );
 
     // Set the webview icon using our custom icon file
-    const iconCode = vscode.Uri.joinPath(extensionUri, 'images', 'icon.png');
+    const iconCode = vscode.Uri.joinPath(extensionUri, "images", "icon.png");
     panel.iconPath = iconCode;
 
     PrReviewPanel.currentPanel = new PrReviewPanel(panel, extensionUri);
@@ -60,14 +62,15 @@ export class PrReviewPanel {
     this._panel.webview.onDidReceiveMessage(
       async (message) => {
         switch (message.command) {
-          case 'getBranches':
+          case "getBranches":
             const branches = await this._gitService.getAvailableBranches();
             const currentBranch = await this._gitService.getCurrentBranch();
-            const defaultTargetBranch = this._gitService.getDefaultTargetBranch();
+            const defaultTargetBranch =
+              this._gitService.getDefaultTargetBranch();
             const languageModel = ConfigService.getLanguageModelFamily();
 
             this._panel.webview.postMessage({
-              command: 'branchesList',
+              command: "branchesList",
               branches,
               currentBranch,
               defaultTargetBranch,
@@ -75,22 +78,30 @@ export class PrReviewPanel {
             });
             break;
 
-          case 'reviewPr':
+          case "reviewPr":
             try {
-              await this.reviewPr(message.sourceBranch, message.targetBranch, message.modelFamily);
+              await this.reviewPr(
+                message.sourceBranch,
+                message.targetBranch,
+                message.modelFamily
+              );
             } catch (error) {
               this._panel.webview.postMessage({
-                command: 'error',
+                command: "error",
                 message: error instanceof Error ? error.message : String(error),
               });
             }
             break;
 
-          case 'navigateToFile':
+          case "navigateToFile":
             try {
-              await this.navigateToFile(message.filePath, message.lineNumber, message.codeContext);
+              await this.navigateToFile(
+                message.filePath,
+                message.lineNumber,
+                message.codeContext
+              );
             } catch (error) {
-              vscode.window.showErrorMessage('Failed to navigate to file');
+              vscode.window.showErrorMessage("Failed to navigate to file");
             }
             break;
         }
@@ -100,9 +111,13 @@ export class PrReviewPanel {
     );
   }
 
-  private async reviewPr(sourceBranch: string, targetBranch: string, modelFamily?: string) {
+  private async reviewPr(
+    sourceBranch: string,
+    targetBranch: string,
+    modelFamily?: string
+  ) {
     try {
-      this._panel.webview.postMessage({ command: 'startLoading' });
+      this._panel.webview.postMessage({ command: "startLoading" });
 
       // Use the enhanced PR review service
       const result = await this._prReviewService.reviewPrChanges(
@@ -117,7 +132,10 @@ export class PrReviewPanel {
         this._gitService.getCommitsBetweenBranches(sourceBranch, targetBranch),
         this._gitService.getDiffBetweenBranches(sourceBranch, targetBranch),
         this._gitService.getFilesBetweenBranches(sourceBranch, targetBranch),
-        this._gitService.getDetailedDiffBetweenBranches(sourceBranch, targetBranch),
+        this._gitService.getDetailedDiffBetweenBranches(
+          sourceBranch,
+          targetBranch
+        ),
       ]);
 
       const enhancedResult = this.enhanceReviewResults(result, detailedDiff);
@@ -126,14 +144,14 @@ export class PrReviewPanel {
       const reviewKey = `${sourceBranch}:${targetBranch}`;
 
       this._panel.webview.postMessage({
-        command: 'reviewComplete',
+        command: "reviewComplete",
         result: enhancedResult,
         reviewKey,
       });
     } catch (error) {
-      console.error('PR review failed:', error);
+      console.error("PR review failed:", error);
       this._panel.webview.postMessage({
-        command: 'error',
+        command: "error",
         message: error instanceof Error ? error.message : String(error),
       });
     }
@@ -145,7 +163,7 @@ export class PrReviewPanel {
   private handleProgressUpdate(update: ReviewProgressUpdate): void {
     // Send progress update to the webview
     this._panel.webview.postMessage({
-      command: 'progressUpdate',
+      command: "progressUpdate",
       update: {
         completed: update.completedCount,
         total: update.totalCount,
@@ -170,13 +188,18 @@ export class PrReviewPanel {
         }
 
         // Find file context in detailed diff
-        const fileMatches = detailedDiff.filter((d) => d.filePath === issue.filePath);
+        const fileMatches = detailedDiff.filter(
+          (d) => d.filePath === issue.filePath
+        );
         if (!fileMatches.length) {
           return;
         }
 
         // Find the closest matching line
-        const closestMatch = this.findClosestMatchingContext(fileMatches, issue);
+        const closestMatch = this.findClosestMatchingContext(
+          fileMatches,
+          issue
+        );
 
         if (closestMatch) {
           // Add enhanced context
@@ -197,7 +220,10 @@ export class PrReviewPanel {
   /**
    * Find the closest matching hunk for an issue
    */
-  private findClosestMatchingContext(fileMatches: any[], issue: any): any | null {
+  private findClosestMatchingContext(
+    fileMatches: any[],
+    issue: any
+  ): any | null {
     // Skip if no line number provided
     if (!issue.lineNumber) {
       return null;
@@ -260,27 +286,34 @@ export class PrReviewPanel {
    */
   private formatCodeSnippet(match: any): string {
     if (!match || !match.relevantLines) {
-      return '';
+      return "";
     }
 
     return match.relevantLines
       .map((line: any) => {
-        const prefix = line.type === 'added' ? '+ ' : line.type === 'removed' ? '- ' : '  ';
+        const prefix =
+          line.type === "added" ? "+ " : line.type === "removed" ? "- " : "  ";
         return prefix + line.content;
       })
-      .join('\n');
+      .join("\n");
   }
 
-  private async navigateToFile(filePath: string, lineNumber: number, codeContext?: string) {
+  private async navigateToFile(
+    filePath: string,
+    lineNumber: number,
+    codeContext?: string
+  ) {
     try {
       // Get the workspace root
       const workspaceRoot = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
       if (!workspaceRoot) {
-        throw new Error('No workspace folder open');
+        throw new Error("No workspace folder open");
       }
 
       // Construct full path and open the file
-      const fullPath = path.isAbsolute(filePath) ? filePath : path.join(workspaceRoot, filePath);
+      const fullPath = path.isAbsolute(filePath)
+        ? filePath
+        : path.join(workspaceRoot, filePath);
 
       const document = await vscode.workspace.openTextDocument(fullPath);
       const editor = await vscode.window.showTextDocument(document);
@@ -289,24 +322,27 @@ export class PrReviewPanel {
       if (codeContext && codeContext.trim()) {
         const text = document.getText();
         const contextLines = codeContext
-          .split('\n')
-          .filter((line) => !line.startsWith('+ ') && !line.startsWith('- '))
-          .map((line) => (line.startsWith('  ') ? line.substring(2) : line))
+          .split("\n")
+          .filter((line) => !line.startsWith("+ ") && !line.startsWith("- "))
+          .map((line) => (line.startsWith("  ") ? line.substring(2) : line))
           .filter((line) => line.trim());
 
         // Need at least 2 context lines to perform a reliable search
         if (contextLines.length >= 2) {
-          const searchPattern = contextLines.slice(0, 3).join('\n'); // Use first 3 lines at most
+          const searchPattern = contextLines.slice(0, 3).join("\n"); // Use first 3 lines at most
           const searchIndex = text.indexOf(searchPattern);
 
           if (searchIndex !== -1) {
             // Found context, calculate position
             const precedingText = text.substring(0, searchIndex);
-            const linesBefore = precedingText.split('\n').length - 1;
+            const linesBefore = precedingText.split("\n").length - 1;
 
             const position = new vscode.Position(linesBefore, 0);
             editor.selection = new vscode.Selection(position, position);
-            editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+            editor.revealRange(
+              new vscode.Range(position, position),
+              vscode.TextEditorRevealType.InCenter
+            );
             return;
           }
         }
@@ -316,10 +352,13 @@ export class PrReviewPanel {
       if (lineNumber !== undefined && lineNumber >= 0) {
         const position = new vscode.Position(lineNumber - 1, 0);
         editor.selection = new vscode.Selection(position, position);
-        editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+        editor.revealRange(
+          new vscode.Range(position, position),
+          vscode.TextEditorRevealType.InCenter
+        );
       }
     } catch (error) {
-      console.error('Navigation failed:', error);
+      console.error("Navigation failed:", error);
       throw error;
     }
   }
@@ -330,23 +369,66 @@ export class PrReviewPanel {
   }
 
   private _getHtmlForWebview(webview: vscode.Webview) {
-    // Get the local path to scripts and css
-    const scriptUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'media', 'pr-review', 'prReview.js')
+    // Get the local path to compiled React bundle and dependencies
+    const prReviewBundleUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(
+        this._extensionUri,
+        "media",
+        "pr-review",
+        "pr-review.bundle.js"
+      )
+    );
+    const sharedBundleUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(
+        this._extensionUri,
+        "media",
+        "shared",
+        "shared.bundle.js"
+      )
+    );
+    const vendorsBundleUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(
+        this._extensionUri,
+        "media",
+        "shared",
+        "vendors.bundle.js"
+      )
     );
     const styleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'media', 'pr-review', 'prReview.css')
+      vscode.Uri.joinPath(
+        this._extensionUri,
+        "media",
+        "pr-review",
+        "prReview.css"
+      )
     );
     const reactUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'media', 'lib', 'react-18.3.1.min.js')
+      vscode.Uri.joinPath(
+        this._extensionUri,
+        "media",
+        "lib",
+        "react-18.3.1.min.js"
+      )
     );
     const reactDomUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'media', 'lib', 'react-dom-18.3.1.min.js')
+      vscode.Uri.joinPath(
+        this._extensionUri,
+        "media",
+        "lib",
+        "react-dom-18.3.1.min.js"
+      )
     );
     const markedUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'media', 'lib', 'marked-4.0.0.min.js')
+      vscode.Uri.joinPath(
+        this._extensionUri,
+        "media",
+        "lib",
+        "marked-4.0.0.min.js"
+      )
     );
-    const modelConfigUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'modelConfig.js'));
+    const modelConfigUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, "media", "modelConfig.js")
+    );
 
     // Use a nonce to only allow specific scripts to be run
     const nonce = getNonce();
@@ -367,7 +449,9 @@ export class PrReviewPanel {
                 <script nonce="${nonce}" src="${reactDomUri}"></script>
                 <script nonce="${nonce}" src="${markedUri}"></script>
                 <script nonce="${nonce}" src="${modelConfigUri}"></script>
-                <script nonce="${nonce}" src="${scriptUri}"></script>
+                <script nonce="${nonce}" src="${vendorsBundleUri}"></script>
+                <script nonce="${nonce}" src="${sharedBundleUri}"></script>
+                <script nonce="${nonce}" src="${prReviewBundleUri}"></script>
             </body>
             </html>`;
   }
@@ -386,10 +470,11 @@ export class PrReviewPanel {
 }
 
 function getNonce() {
-    let text = '';
-    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    for (let i = 0; i < 32; i++) {
-        text += possible.charAt(Math.floor(Math.random() * possible.length));
-    }
-    return text;
+  let text = "";
+  const possible =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  for (let i = 0; i < 32; i++) {
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
+  }
+  return text;
 }

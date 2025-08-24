@@ -117,23 +117,23 @@
     - Verify complex issue display and navigation functionality
     - _Requirements: 3.3, 3.4_
 
-- [ ] 6. Update webview panel HTML generation
+- [x] 6. Update webview panel HTML generation
 
-  - [ ] 6.1 Modify prDescriptionPanel.ts to load compiled React bundle
+  - [x] 6.1 Modify prDescriptionPanel.ts to load compiled React bundle
 
     - Update \_getHtmlForWebview method to reference new compiled bundle path
     - Ensure proper script loading order and CSP configuration
     - Test webview loading with new bundle structure
     - _Requirements: 6.4, 3.1_
 
-  - [ ] 6.2 Modify breakingChangesPanel.ts to load compiled React bundle
+  - [x] 6.2 Modify breakingChangesPanel.ts to load compiled React bundle
 
     - Update \_getHtmlForWebview method to reference new compiled bundle path
     - Ensure proper script loading order and CSP configuration
     - Test webview loading with new bundle structure
     - _Requirements: 6.4, 3.2_
 
-  - [ ] 6.3 Modify prReviewPanel.ts to load compiled React bundle
+  - [x] 6.3 Modify prReviewPanel.ts to load compiled React bundle
     - Update \_getHtmlForWebview method to reference new compiled bundle path
     - Ensure proper script loading order and CSP configuration
     - Test webview loading with new bundle structure
