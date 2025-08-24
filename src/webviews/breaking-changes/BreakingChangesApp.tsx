@@ -50,9 +50,19 @@ export interface AnalysisResult {
 }
 
 export function BreakingChangesApp() {
-  const { postMessage } = useVSCodeAPI();
+  const { postMessage, vscode } = useVSCodeAPI();
   const { isLoading, startLoading, stopLoading } = useLoadingState();
   const { error, setError, clearError } = useErrorState();
+
+  // Don't render until VS Code API is available
+  if (!vscode) {
+    return (
+      <div style={{ padding: '20px', textAlign: 'center' }}>
+        <h2>Breaking Changes Analyzer</h2>
+        <p>Initializing...</p>
+      </div>
+    );
+  }
   
   const [branches, setBranches] = useState<string[]>([]);
   const [currentBranch, setCurrentBranch] = useState('');

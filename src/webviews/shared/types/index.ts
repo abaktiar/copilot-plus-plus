@@ -1,4 +1,5 @@
-import React from 'react';
+import React from "react";
+import type { ModelConfig } from "../config/models";
 
 // Webview ↔ Extension communication types
 export interface WebviewMessage {
@@ -8,7 +9,17 @@ export interface WebviewMessage {
 
 // Extension → Webview messages
 export interface ExtensionMessage extends WebviewMessage {
-  command: 'branchesList' | 'result' | 'error' | 'progressUpdate' | 'startLoading' | 'stopLoading' | 'generationComplete' | 'analyzing' | 'analysisResult' | 'reviewComplete';
+  command:
+    | "branchesList"
+    | "result"
+    | "error"
+    | "progressUpdate"
+    | "startLoading"
+    | "stopLoading"
+    | "generationComplete"
+    | "analyzing"
+    | "analysisResult"
+    | "reviewComplete";
   branches?: string[];
   currentBranch?: string;
   defaultTargetBranch?: string;
@@ -20,9 +31,20 @@ export interface ExtensionMessage extends WebviewMessage {
   reviewKey?: string;
 }
 
-// Webview → Extension messages  
+// Webview → Extension messages
 export interface WebviewRequest extends WebviewMessage {
-  command: 'getBranches' | 'generateDescription' | 'generatePrDescription' | 'reviewChanges' | 'reviewPr' | 'analyzeBreaking' | 'analyzeBreakingChanges' | 'copyToClipboard' | 'error' | 'openFile' | 'navigateToFile';
+  command:
+    | "getBranches"
+    | "generateDescription"
+    | "generatePrDescription"
+    | "reviewChanges"
+    | "reviewPr"
+    | "analyzeBreaking"
+    | "analyzeBreakingChanges"
+    | "copyToClipboard"
+    | "error"
+    | "openFile"
+    | "navigateToFile";
   sourceBranch?: string;
   targetBranch?: string;
   selectedModel?: string;
@@ -37,11 +59,6 @@ export interface ProgressUpdate {
   message: string;
   progress?: number;
   total?: number;
-}
-
-export interface ModelConfig {
-  id: string;
-  name: string;
 }
 
 export interface WebviewConfig {
@@ -71,13 +88,13 @@ export interface BranchSelectorProps {
 }
 
 export interface LoadingSpinnerProps {
-  size?: 'small' | 'medium' | 'large';
+  size?: "small" | "medium" | "large";
   message?: string;
 }
 
 export interface ButtonProps {
-  variant?: 'primary' | 'secondary' | 'danger';
-  size?: 'small' | 'medium' | 'large';
+  variant?: "primary" | "secondary" | "danger";
+  size?: "small" | "medium" | "large";
   loading?: boolean;
   children: React.ReactNode;
   disabled?: boolean;
