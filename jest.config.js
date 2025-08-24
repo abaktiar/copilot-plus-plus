@@ -6,7 +6,8 @@ module.exports = {
   moduleNameMapper: {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
     '^@shared/(.*)$': '<rootDir>/src/webviews/shared/$1',
-    '^@shared$': '<rootDir>/src/webviews/shared'
+    '^@shared$': '<rootDir>/src/webviews/shared',
+    '^marked$': '<rootDir>/src/webviews/__mocks__/marked.js'
   },
   testMatch: [
     '<rootDir>/src/webviews/**/__tests__/**/*.test.{ts,tsx}',
