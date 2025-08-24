@@ -6,7 +6,7 @@ import {
   useErrorState,
   useWebviewState 
 } from '../shared/hooks/useVSCodeAPI';
-import { LoadingSpinner } from '../shared/components';
+import { LoadingSpinner, AVAILABLE_MODELS, DEFAULT_MODEL } from '../shared';
 import { ExtensionMessage, ModelConfig } from '../shared/types';
 import { ReviewConfiguration } from './components/ReviewConfiguration';
 import { ProgressIndicator } from './components/ProgressIndicator';
@@ -66,8 +66,8 @@ export function PrReviewApp() {
   const [currentBranch, setCurrentBranch] = useState('');
   const [sourceBranch, setSourceBranch] = useState('');
   const [targetBranch, setTargetBranch] = useState('');
-  const [selectedModel, setSelectedModel] = useState('');
-  const [models, setModels] = useState<ModelConfig[]>([]);
+  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
+  const models = AVAILABLE_MODELS;
 
   // Review state
   const [reviewResult, setReviewResult] = useState<ReviewResult | null>(null);
@@ -84,18 +84,10 @@ export function PrReviewApp() {
     isSummaryCollapsed: false,
   });
 
-  // Load models from shared config
-  useEffect(() => {
-    const sharedConfig = (window as any).sharedModelConfig;
-    if (sharedConfig?.models) {
-      setModels(sharedConfig.models);
-    }
-  }, []);
-
-  // Request branches on mount
+  // Request branches on mount (only once)
   useEffect(() => {
     postMessage({ command: 'getBranches' });
-  }, [postMessage]);
+  }, []); // Empty dependency array to run only once
 
   // Handle messages from extension
   const handleMessage = useCallback((message: ExtensionMessage) => {

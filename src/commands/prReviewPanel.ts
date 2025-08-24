@@ -394,44 +394,13 @@ export class PrReviewPanel {
         "vendors.bundle.js"
       )
     );
-    const styleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(
-        this._extensionUri,
-        "media",
-        "pr-review",
-        "prReview.css"
-      )
-    );
-    const reactUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(
-        this._extensionUri,
-        "media",
-        "lib",
-        "react-18.3.1.min.js"
-      )
-    );
-    const reactDomUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(
-        this._extensionUri,
-        "media",
-        "lib",
-        "react-dom-18.3.1.min.js"
-      )
-    );
-    const markedUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(
-        this._extensionUri,
-        "media",
-        "lib",
-        "marked-4.0.0.min.js"
-      )
-    );
-    const modelConfigUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, "media", "modelConfig.js")
-    );
+
 
     // Use a nonce to only allow specific scripts to be run
     const nonce = getNonce();
+
+    // Use nonce-based CSP for secure script execution
+    const scriptSrc = `'nonce-${nonce}'`;
 
     return `<!DOCTYPE html>
             <html lang="en">
@@ -439,16 +408,11 @@ export class PrReviewPanel {
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <meta name="color-scheme" content="dark light">
-                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; font-src ${webview.cspSource}; script-src 'nonce-${nonce}'; img-src ${webview.cspSource} https:;">
-                <link href="${styleUri}" rel="stylesheet">
+                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; font-src ${webview.cspSource}; script-src ${scriptSrc}; img-src ${webview.cspSource} https:;">
                 <title>PR Review Assistant</title>
             </head>
             <body>
                 <div id="root"></div>
-                <script nonce="${nonce}" src="${reactUri}"></script>
-                <script nonce="${nonce}" src="${reactDomUri}"></script>
-                <script nonce="${nonce}" src="${markedUri}"></script>
-                <script nonce="${nonce}" src="${modelConfigUri}"></script>
                 <script nonce="${nonce}" src="${vendorsBundleUri}"></script>
                 <script nonce="${nonce}" src="${sharedBundleUri}"></script>
                 <script nonce="${nonce}" src="${prReviewBundleUri}"></script>

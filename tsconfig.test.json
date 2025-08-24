@@ -1,0 +1,35 @@
+{
+  "extends": "./tsconfig.webviews.json",
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "jsx": "react-jsx",
+    "declaration": false,
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "types": ["jest", "@testing-library/jest-dom", "node"],
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["src/webviews/shared/*"],
+      "@shared": ["src/webviews/shared"]
+    }
+  },
+  "include": [
+    "src/webviews/**/*",
+    "src/webviews/**/__tests__/**/*",
+    "src/webviews/**/*.test.*",
+    "src/webviews/**/*.spec.*"
+  ],
+  "exclude": [
+    "node_modules",
+    "media",
+    "dist",
+    "out"
+  ]
+}

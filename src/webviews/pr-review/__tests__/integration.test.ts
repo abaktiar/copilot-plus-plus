@@ -3,35 +3,11 @@
  * Tests the complete workflow from configuration to results display
  */
 
-import { JSDOM } from 'jsdom';
-
-// Set up DOM environment
-const dom = new JSDOM('<!DOCTYPE html><html><body><div id="root"></div></body></html>', {
-  url: 'http://localhost',
-  pretendToBeVisual: true,
-  resources: 'usable'
-});
-
-global.window = dom.window as any;
-global.document = dom.window.document;
-global.navigator = dom.window.navigator;
-
-// Mock VSCode API
-const mockVSCodeAPI = {
-  postMessage: jest.fn(),
-  getState: jest.fn().mockReturnValue({}),
-  setState: jest.fn(),
-};
-
-(global.window as any).acquireVsCodeApi = () => mockVSCodeAPI;
-
-// Mock shared model config
-(global.window as any).sharedModelConfig = {
-  models: [
-    { id: 'gpt-4', name: 'GPT-4' },
-    { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' },
-  ],
-};
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { simulateVSCodeMessage, mockVSCodeAPI, mockReviewIssues } from '../../test-utils';
+import { PrReviewApp } from '../PrReviewApp';
 
 describe('PR Review Assistant Integration', () => {
   beforeEach(() => {
@@ -39,291 +15,365 @@ describe('PR Review Assistant Integration', () => {
     mockVSCodeAPI.getState.mockReturnValue({});
   });
 
-  it('should complete a full review workflow', async () => {
-    // Import React components after DOM setup
-    const React = require('react');
-    const { createRoot } = require('react-dom/client');
-    const { PrReviewApp } = require('../PrReviewApp');
+  test('should complete a full review workflow', async () => {
+    const user = userEvent.setup();
+    render(React.createElement(PrReviewApp));
 
-    // Render the app
-    const container = document.getElementById('root');
-    const root = createRoot(container);
-    
-    await new Promise<void>((resolve) => {
-      root.render(React.createElement(PrReviewApp));
-      setTimeout(resolve, 0);
-    });
-
-    // Verify initial state
+    // Verify initial state - component requests branches
     expect(mockVSCodeAPI.postMessage).toHaveBeenCalledWith({
-      command: 'getBranches',
+      command: 'getBranches'
     });
 
     // Simulate receiving branches
-    const messageEvent = new MessageEvent('message', {
-      data: {
-        command: 'branchesList',
-        branches: ['main', 'feature-branch', 'develop'],
-        currentBranch: 'feature-branch',
-        defaultTargetBranch: 'main',
-        languageModel: 'gpt-4',
-      },
+    simulateVSCodeMessage('branchesList', {
+      branches: ['main', 'feature-branch', 'develop'],
+      currentBranch: 'feature-branch',
+      defaultTargetBranch: 'main',
+      languageModel: 'gpt-4o-mini'
     });
 
-    window.dispatchEvent(messageEvent);
-
-    // Wait for state updates
-    await new Promise(resolve => setTimeout(resolve, 0));
-
-    // Simulate starting a review
-    const startReviewEvent = new MessageEvent('message', {
-      data: {
-        command: 'startLoading',
-      },
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('feature-branch')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('main')).toBeInTheDocument();
     });
 
-    window.dispatchEvent(startReviewEvent);
+    // Start review
+    const reviewButton = screen.getByText('Start Review');
+    await user.click(reviewButton);
+
+    expect(mockVSCodeAPI.postMessage).toHaveBeenCalledWith({
+      command: 'reviewPrChanges',
+      sourceBranch: 'feature-branch',
+      targetBranch: 'main',
+      modelFamily: 'gpt-4o-mini'
+    });
+
+    // Simulate review start
+    simulateVSCodeMessage('startLoading');
+
+    await waitFor(() => {
+      expect(screen.getByText('Reviewing changes...')).toBeInTheDocument();
+      expect(screen.getByText('Cancel Review')).toBeInTheDocument();
+    });
 
     // Simulate progress updates
-    const progressEvent = new MessageEvent('message', {
-      data: {
-        command: 'progressUpdate',
-        update: {
-          progress: 5,
-          total: 10,
-          message: 'Processing src/component.js',
-        },
-      },
+    simulateVSCodeMessage('progressUpdate', {
+      update: {
+        progress: 5,
+        total: 10,
+        message: 'Processing src/component.js'
+      }
     });
 
-    window.dispatchEvent(progressEvent);
+    await waitFor(() => {
+      expect(screen.getByText('Processing src/component.js')).toBeInTheDocument();
+      expect(screen.getByText('5 / 10')).toBeInTheDocument();
+    });
 
     // Simulate review completion
-    const reviewCompleteEvent = new MessageEvent('message', {
-      data: {
-        command: 'reviewComplete',
-        result: {
-          summary: {
-            assessment: 'The code shows good overall structure with some areas for improvement.',
-            strengths: [
-              'Clean separation of concerns',
-              'Good error handling in most functions',
-              'Consistent naming conventions',
-            ],
-            criticalIssues: [
-              'Potential security vulnerability in user input handling',
-            ],
-            recommendations: [
-              'Add input validation',
-              'Improve test coverage',
-              'Add JSDoc comments',
-            ],
-          },
-          issues: [
-            {
-              filePath: 'src/component.js',
-              lineNumber: 42,
-              severity: 'Critical',
-              category: 'Security',
-              description: 'User input is not sanitized before processing',
-              suggestion: 'Add input sanitization using a trusted library',
-              suggestedCode: 'const sanitized = DOMPurify.sanitize(userInput);',
-              justification: 'Unsanitized user input can lead to XSS attacks',
-              lineContext: {
-                linesBefore: ['function processUserInput(input) {'],
-                codeSnippet: '  return processData(input);',
-                linesAfter: ['}'],
-              },
-            },
-            {
-              filePath: 'src/utils.js',
-              lineNumber: 15,
-              severity: 'Medium',
-              category: 'Code Style',
-              description: 'Missing semicolon at end of statement',
-              suggestion: 'Add semicolon for consistency',
-            },
-            {
-              filePath: 'src/test.js',
-              lineNumber: 8,
-              severity: 'Low',
-              category: 'Testing Gap',
-              description: 'Missing test for error case',
-              suggestion: 'Add test to cover error handling path',
-            },
-          ],
-        },
-        reviewKey: 'feature-branch:main',
+    const mockResult = {
+      summary: {
+        assessment: 'The code shows good overall structure with some areas for improvement.',
+        strengths: [
+          'Clean separation of concerns',
+          'Good error handling in most functions',
+          'Consistent naming conventions'
+        ],
+        criticalIssues: [
+          'Potential security vulnerability in user input handling'
+        ],
+        recommendations: [
+          'Add input validation',
+          'Improve test coverage',
+          'Add JSDoc comments'
+        ]
       },
+      issues: mockReviewIssues
+    };
+
+    simulateVSCodeMessage('reviewComplete', {
+      result: mockResult,
+      reviewKey: 'feature-branch:main'
     });
 
-    window.dispatchEvent(reviewCompleteEvent);
+    await waitFor(() => {
+      expect(screen.getByText('Review Complete')).toBeInTheDocument();
+      expect(screen.getByText('The code shows good overall structure')).toBeInTheDocument();
+      expect(screen.getByText('Potential XSS vulnerability')).toBeInTheDocument();
+      expect(screen.getByText('Inefficient loop')).toBeInTheDocument();
+    });
 
-    // Wait for final state updates
-    await new Promise(resolve => setTimeout(resolve, 0));
+    // Test issue filtering
+    const severityFilter = screen.getByLabelText('Filter by severity');
+    await user.selectOptions(severityFilter, 'High');
 
-    // Verify the DOM contains expected elements
-    expect(document.body.innerHTML).toContain('PR Review Assistant');
-    expect(document.body.innerHTML).toContain('Review Progress');
-    expect(document.body.innerHTML).toContain('Issues by Severity');
-    expect(document.body.innerHTML).toContain('Review Summary');
+    await waitFor(() => {
+      expect(screen.getByText('Potential XSS vulnerability')).toBeInTheDocument();
+      expect(screen.queryByText('Inefficient loop')).not.toBeInTheDocument();
+    });
 
-    // Clean up
-    root.unmount();
-  });
-
-  it('should handle error states correctly', async () => {
-    const React = require('react');
-    const { createRoot } = require('react-dom/client');
-    const { PrReviewApp } = require('../PrReviewApp');
-
-    const container = document.getElementById('root');
-    const root = createRoot(container);
+    // Test search functionality
+    await user.selectOptions(severityFilter, 'All');
     
-    await new Promise<void>((resolve) => {
-      root.render(React.createElement(PrReviewApp));
-      setTimeout(resolve, 0);
+    const searchInput = screen.getByPlaceholderText('Search issues...');
+    await user.type(searchInput, 'XSS');
+
+    await waitFor(() => {
+      expect(screen.getByText('Potential XSS vulnerability')).toBeInTheDocument();
+      expect(screen.queryByText('Inefficient loop')).not.toBeInTheDocument();
     });
-
-    // Simulate an error
-    const errorEvent = new MessageEvent('message', {
-      data: {
-        command: 'error',
-        message: 'Failed to analyze changes: Git repository not found',
-      },
-    });
-
-    window.dispatchEvent(errorEvent);
-
-    // Wait for state updates
-    await new Promise(resolve => setTimeout(resolve, 0));
-
-    // Verify error is displayed
-    expect(document.body.innerHTML).toContain('Failed to analyze changes: Git repository not found');
-
-    root.unmount();
   });
 
-  it('should persist and restore reviewed issues state', async () => {
+  test('should handle error states correctly', async () => {
+    render(React.createElement(PrReviewApp));
+
+    // Simulate error during review
+    simulateVSCodeMessage('error', {
+      message: 'Failed to analyze changes: Git repository not found'
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Error')).toBeInTheDocument();
+      expect(screen.getByText('Failed to analyze changes: Git repository not found')).toBeInTheDocument();
+    });
+
+    // Error should be dismissible
+    const dismissButton = screen.getByText('Dismiss');
+    fireEvent.click(dismissButton);
+
+    await waitFor(() => {
+      expect(screen.queryByText('Failed to analyze changes: Git repository not found')).not.toBeInTheDocument();
+    });
+  });
+
+  test('should persist and restore reviewed issues state', async () => {
     // Set up saved state
     const savedState = {
       'feature-branch:main': [
-        'src/component.js:Critical:User input is not sanitized before processing',
-      ],
+        'src/component.ts:42:Critical:User input is not sanitized before processing'
+      ]
     };
     mockVSCodeAPI.getState.mockReturnValue(savedState);
 
-    const React = require('react');
-    const { createRoot } = require('react-dom/client');
-    const { PrReviewApp } = require('../PrReviewApp');
-
-    const container = document.getElementById('root');
-    const root = createRoot(container);
-    
-    await new Promise<void>((resolve) => {
-      root.render(React.createElement(PrReviewApp));
-      setTimeout(resolve, 0);
-    });
-
-    // Simulate review completion with the same key
-    const reviewCompleteEvent = new MessageEvent('message', {
-      data: {
-        command: 'reviewComplete',
-        result: {
-          summary: {
-            assessment: 'Test assessment',
-            strengths: [],
-            criticalIssues: [],
-            recommendations: [],
-          },
-          issues: [
-            {
-              filePath: 'src/component.js',
-              severity: 'Critical',
-              category: 'Security',
-              description: 'User input is not sanitized before processing',
-            },
-          ],
-        },
-        reviewKey: 'feature-branch:main',
-      },
-    });
-
-    window.dispatchEvent(reviewCompleteEvent);
-
-    // Wait for state updates
-    await new Promise(resolve => setTimeout(resolve, 0));
+    render(React.createElement(PrReviewApp));
 
     // Verify that getState was called to restore saved state
     expect(mockVSCodeAPI.getState).toHaveBeenCalled();
 
-    root.unmount();
+    // Simulate review completion with the same key
+    simulateVSCodeMessage('reviewComplete', {
+      result: {
+        summary: {
+          assessment: 'Test assessment',
+          strengths: [],
+          criticalIssues: [],
+          recommendations: []
+        },
+        issues: mockReviewIssues
+      },
+      reviewKey: 'feature-branch:main'
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Review Complete')).toBeInTheDocument();
+    });
+
+    // Check that setState is called to save new state
+    expect(mockVSCodeAPI.setState).toHaveBeenCalled();
   });
 
-  it('should handle keyboard navigation', async () => {
-    const React = require('react');
-    const { createRoot } = require('react-dom/client');
-    const { PrReviewApp } = require('../PrReviewApp');
+  test('should handle keyboard navigation', async () => {
+    render(React.createElement(PrReviewApp));
 
-    const container = document.getElementById('root');
-    const root = createRoot(container);
-    
-    await new Promise<void>((resolve) => {
-      root.render(React.createElement(PrReviewApp));
-      setTimeout(resolve, 0);
-    });
-
-    // Simulate review completion with multiple issues
-    const reviewCompleteEvent = new MessageEvent('message', {
-      data: {
-        command: 'reviewComplete',
-        result: {
-          summary: {
-            assessment: 'Test assessment',
-            strengths: [],
-            criticalIssues: [],
-            recommendations: [],
-          },
-          issues: [
-            {
-              filePath: 'src/component1.js',
-              severity: 'High',
-              category: 'Security',
-              description: 'Issue 1',
-            },
-            {
-              filePath: 'src/component2.js',
-              severity: 'Medium',
-              category: 'Performance',
-              description: 'Issue 2',
-            },
-          ],
+    // Set up review results with multiple issues
+    simulateVSCodeMessage('reviewComplete', {
+      result: {
+        summary: {
+          assessment: 'Test assessment',
+          strengths: [],
+          criticalIssues: [],
+          recommendations: []
         },
-        reviewKey: 'test:main',
+        issues: mockReviewIssues
       },
+      reviewKey: 'test:main'
     });
 
-    window.dispatchEvent(reviewCompleteEvent);
+    await waitFor(() => {
+      expect(screen.getByText('Review Complete')).toBeInTheDocument();
+    });
 
-    // Wait for state updates
-    await new Promise(resolve => setTimeout(resolve, 0));
-
-    // Simulate keyboard navigation
-    const keydownEvent = new KeyboardEvent('keydown', { key: 'k' });
-    window.dispatchEvent(keydownEvent);
-
-    const keydownEvent2 = new KeyboardEvent('keydown', { key: 'j' });
-    window.dispatchEvent(keydownEvent2);
-
-    const keydownEvent3 = new KeyboardEvent('keydown', { key: 'd' });
-    window.dispatchEvent(keydownEvent3);
-
-    const keydownEvent4 = new KeyboardEvent('keydown', { key: 'f' });
-    window.dispatchEvent(keydownEvent4);
+    // Test keyboard navigation
+    fireEvent.keyDown(document, { key: 'j' }); // Next issue
+    fireEvent.keyDown(document, { key: 'k' }); // Previous issue
+    fireEvent.keyDown(document, { key: 'd' }); // Dismiss issue
+    fireEvent.keyDown(document, { key: 'f' }); // Focus search
 
     // Should handle keyboard events without errors
-    expect(document.body.innerHTML).toContain('Issues');
+    expect(screen.getByText('Potential XSS vulnerability')).toBeInTheDocument();
+  });
 
-    root.unmount();
+  test('should handle file navigation clicks', async () => {
+    const user = userEvent.setup();
+    render(React.createElement(PrReviewApp));
+
+    // Set up review results
+    simulateVSCodeMessage('reviewComplete', {
+      result: {
+        summary: {
+          assessment: 'Test assessment',
+          strengths: [],
+          criticalIssues: [],
+          recommendations: []
+        },
+        issues: mockReviewIssues
+      },
+      reviewKey: 'test:main'
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('src/component.ts:42')).toBeInTheDocument();
+    });
+
+    // Click on file location
+    const fileLocation = screen.getByText('src/component.ts:42');
+    await user.click(fileLocation);
+
+    expect(mockVSCodeAPI.postMessage).toHaveBeenCalledWith({
+      command: 'openFile',
+      filePath: 'src/component.ts',
+      lineNumber: 42,
+      data: { filePath: 'src/component.ts', lineNumber: 42 }
+    });
+  });
+
+  test('should handle review cancellation', async () => {
+    const user = userEvent.setup();
+    render(React.createElement(PrReviewApp));
+
+    // Set up branches and start review
+    simulateVSCodeMessage('branchesList', {
+      branches: ['main', 'feature-branch'],
+      currentBranch: 'feature-branch',
+      defaultTargetBranch: 'main',
+      languageModel: 'gpt-4o-mini'
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Start Review')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText('Start Review'));
+
+    simulateVSCodeMessage('startLoading');
+
+    await waitFor(() => {
+      expect(screen.getByText('Cancel Review')).toBeInTheDocument();
+    });
+
+    // Cancel the review
+    await user.click(screen.getByText('Cancel Review'));
+
+    expect(mockVSCodeAPI.postMessage).toHaveBeenCalledWith({
+      command: 'cancelReview'
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Start Review')).toBeInTheDocument();
+    });
+  });
+
+  test('should handle issue dismissal and restoration', async () => {
+    const user = userEvent.setup();
+    render(React.createElement(PrReviewApp));
+
+    // Set up review results
+    simulateVSCodeMessage('reviewComplete', {
+      result: {
+        summary: {
+          assessment: 'Test assessment',
+          strengths: [],
+          criticalIssues: [],
+          recommendations: []
+        },
+        issues: mockReviewIssues
+      },
+      reviewKey: 'test:main'
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Potential XSS vulnerability')).toBeInTheDocument();
+    });
+
+    // Dismiss an issue
+    const dismissButtons = screen.getAllByText('Dismiss');
+    await user.click(dismissButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.queryByText('Potential XSS vulnerability')).not.toBeInTheDocument();
+    });
+
+    // Check that state was saved
+    expect(mockVSCodeAPI.setState).toHaveBeenCalled();
+
+    // Show dismissed issues
+    const showDismissedButton = screen.getByText('Show Dismissed (1)');
+    await user.click(showDismissedButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Potential XSS vulnerability')).toBeInTheDocument();
+    });
+
+    // Restore dismissed issue
+    const restoreButton = screen.getByText('Restore');
+    await user.click(restoreButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Potential XSS vulnerability')).toBeInTheDocument();
+      expect(screen.queryByText('Show Dismissed')).not.toBeInTheDocument();
+    });
+  });
+
+  test('should handle configuration changes', async () => {
+    const user = userEvent.setup();
+    render(React.createElement(PrReviewApp));
+
+    // Set up branches
+    simulateVSCodeMessage('branchesList', {
+      branches: ['main', 'feature-branch', 'develop'],
+      currentBranch: 'feature-branch',
+      defaultTargetBranch: 'main',
+      languageModel: 'gpt-4o-mini'
+    });
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('feature-branch')).toBeInTheDocument();
+    });
+
+    // Change source branch
+    const sourceBranchSelect = screen.getByDisplayValue('feature-branch');
+    await user.selectOptions(sourceBranchSelect, 'develop');
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('develop')).toBeInTheDocument();
+    });
+
+    // Change model
+    const modelSelect = screen.getByDisplayValue('GPT-4o Mini');
+    await user.selectOptions(modelSelect, 'gpt-4o');
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('GPT-4o')).toBeInTheDocument();
+    });
+
+    // Start review with new configuration
+    await user.click(screen.getByText('Start Review'));
+
+    expect(mockVSCodeAPI.postMessage).toHaveBeenCalledWith({
+      command: 'reviewPrChanges',
+      sourceBranch: 'develop',
+      targetBranch: 'main',
+      modelFamily: 'gpt-4o'
+    });
   });
 });
