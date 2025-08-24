@@ -2,7 +2,7 @@
 All notable changes to the "copilot-plus-plus" extension will be documented in this file.
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
-## [0.0.18] - 2025-08-24 - Major Frontend Architecture Overhaul
+## [0.1.2] - 2025-08-24 - Major Frontend Architecture Overhaul
 This major release represents a complete modernization of the extension's frontend architecture with significant improvements to user experience, performance, and maintainability.
 
 ### Added
