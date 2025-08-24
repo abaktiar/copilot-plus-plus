@@ -1,5 +1,5 @@
 import React from 'react';
-import { BranchSelector, Button } from '../../shared/components';
+import { BranchDropdown, Button } from '../../shared/components';
 
 interface AnalysisConfigurationProps {
   branches: string[];
@@ -10,6 +10,7 @@ interface AnalysisConfigurationProps {
   onAnalyze: () => void;
   isLoading: boolean;
   canAnalyze: boolean;
+  currentBranch?: string;
 }
 
 export function AnalysisConfiguration({
@@ -20,41 +21,48 @@ export function AnalysisConfiguration({
   onTargetBranchChange,
   onAnalyze,
   isLoading,
-  canAnalyze
+  canAnalyze,
+  currentBranch,
 }: AnalysisConfigurationProps) {
   return (
-    <>
-      {/* Branch selection row */}
-      <div className="branch-selection-row">
-        <div className="branch-selector">
-          <BranchSelector
-            branches={branches}
-            selectedBranch={sourceBranch}
-            onBranchChange={onSourceBranchChange}
-            label="Source Branch (PR branch)"
-          />
-        </div>
-        <div className="branch-selector">
-          <BranchSelector
-            branches={branches}
-            selectedBranch={targetBranch}
-            onBranchChange={onTargetBranchChange}
-            label="Target Branch (base branch)"
-          />
-        </div>
+    <div className='branch-selector-card'>
+      <div className='branch-flow'>
+        <BranchDropdown
+          branches={branches}
+          selectedBranch={sourceBranch}
+          onBranchChange={onSourceBranchChange}
+          label='source'
+          placeholder='Select source branch'
+          currentBranch={currentBranch}
+        />
+        <span className='branch-arrow'>→</span>
+        <BranchDropdown
+          branches={branches.filter((b) => b !== sourceBranch)}
+          selectedBranch={targetBranch}
+          onBranchChange={onTargetBranchChange}
+          label='target'
+          placeholder='Select target branch'
+          currentBranch={currentBranch}
+        />
       </div>
 
-      {/* Analyze button row */}
-      <div className="analyze-button-row">
+      <div className='generate-section'>
         <Button
+          variant='primary'
           onClick={onAnalyze}
           disabled={isLoading || !canAnalyze}
           loading={isLoading}
-          variant="primary"
-        >
-          {isLoading ? 'Analyzing...' : 'Analyze Breaking Changes'}
+          className='analyze-button'>
+          {isLoading ? (
+            'Analyzing...'
+          ) : (
+            <>
+              <span className='icon'>✨</span>
+              Analyze Breaking Changes
+            </>
+          )}
         </Button>
       </div>
-    </>
+    </div>
   );
 }

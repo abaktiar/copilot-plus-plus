@@ -5,20 +5,16 @@ import {
   useLoadingState, 
   useErrorState 
 } from '../shared/hooks/useVSCodeAPI';
-import { 
-  ModelSelector, 
-  BranchSelector, 
-  Button, 
+import {
+  ModelDropdown,
+  BranchSelector,
+  Button,
   LoadingSpinner,
   Icon,
   AVAILABLE_MODELS,
-  DEFAULT_MODEL
+  DEFAULT_MODEL,
 } from '../shared';
-import { 
-  ExtensionMessage, 
-  ModelConfig, 
-  WebviewRequest 
-} from '../shared/types';
+import { ExtensionMessage, WebviewRequest } from '../shared/types';
 import { AnalysisConfiguration, ResultsTable, FilterControls } from './components';
 import './styles/breaking-changes.css';
 
@@ -196,20 +192,16 @@ export function BreakingChangesApp() {
   const filteredBreakingChanges = getFilteredBreakingChanges();
 
   return (
-    <div className="container">
-      <div className="section">
+    <div className='container'>
+      <div className='section'>
         {/* Title and model selection row */}
-        <div className="header-row">
-          <div className="title-section">
-            <Icon name="branch" />
-            <h2>Breaking Changes Analysis</h2>
+        <div className='header-row'>
+          <div className='title-section'>
+            <Icon name='branch' />
+            <h2 className='heading'>Breaking Changes Analysis</h2>
           </div>
-          <div className="model-section">
-            <ModelSelector
-              selectedModel={selectedModel}
-              onModelChange={setSelectedModel}
-              models={models}
-            />
+          <div className='model-selector-top'>
+            <ModelDropdown selectedModel={selectedModel} onModelChange={setSelectedModel} models={models} />
           </div>
         </div>
 
@@ -222,50 +214,51 @@ export function BreakingChangesApp() {
           onAnalyze={handleAnalyze}
           isLoading={isLoading}
           canAnalyze={!!(sourceBranch && targetBranch)}
+          currentBranch={currentBranch}
         />
       </div>
 
       {error && (
-        <div className="error-message">
+        <div className='error-message'>
           <h3>Error</h3>
           <p>{error}</p>
         </div>
       )}
 
       {isLoading && (
-        <div className="loading-container">
-          <LoadingSpinner size="large" />
+        <div className='loading-container'>
+          <LoadingSpinner size='large' />
           <p>Analyzing breaking changes...</p>
         </div>
       )}
 
       {!isLoading && result && (
-        <div className="section">
+        <div className='section'>
           <h2>Analysis Results</h2>
 
           {/* Summary */}
-          <div className="summary">
+          <div className='summary'>
             <h3>Summary</h3>
-            <div className="summary-stats">
-              <div className="stat">
-                <span className="stat-label">Total:</span>
-                <span className="stat-value">{result.summary.totalBreakingChanges}</span>
+            <div className='summary-stats'>
+              <div className='stat'>
+                <span className='stat-label'>Total:</span>
+                <span className='stat-value'>{result.summary.totalBreakingChanges}</span>
               </div>
-              <div className="stat critical">
-                <span className="stat-label">Critical:</span>
-                <span className="stat-value">{result.summary.criticalCount}</span>
+              <div className='stat critical'>
+                <span className='stat-label'>Critical:</span>
+                <span className='stat-value'>{result.summary.criticalCount}</span>
               </div>
-              <div className="stat high">
-                <span className="stat-label">High:</span>
-                <span className="stat-value">{result.summary.highCount}</span>
+              <div className='stat high'>
+                <span className='stat-label'>High:</span>
+                <span className='stat-value'>{result.summary.highCount}</span>
               </div>
-              <div className="stat medium">
-                <span className="stat-label">Medium:</span>
-                <span className="stat-value">{result.summary.mediumCount}</span>
+              <div className='stat medium'>
+                <span className='stat-label'>Medium:</span>
+                <span className='stat-value'>{result.summary.mediumCount}</span>
               </div>
-              <div className="stat low">
-                <span className="stat-label">Low:</span>
-                <span className="stat-value">{result.summary.lowCount}</span>
+              <div className='stat low'>
+                <span className='stat-label'>Low:</span>
+                <span className='stat-value'>{result.summary.lowCount}</span>
               </div>
             </div>
           </div>
@@ -280,10 +273,7 @@ export function BreakingChangesApp() {
             filteredCount={filteredBreakingChanges.length}
           />
 
-          <ResultsTable
-            breakingChanges={filteredBreakingChanges}
-            onOpenFile={handleOpenFile}
-          />
+          <ResultsTable breakingChanges={filteredBreakingChanges} onOpenFile={handleOpenFile} />
         </div>
       )}
     </div>

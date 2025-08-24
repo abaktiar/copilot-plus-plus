@@ -5,9 +5,9 @@ import {
   useLoadingState, 
   useErrorState 
 } from '../shared/hooks/useVSCodeAPI';
-import { LoadingSpinner, AVAILABLE_MODELS, DEFAULT_MODEL, Button } from '../shared';
+import { LoadingSpinner, AVAILABLE_MODELS, DEFAULT_MODEL, Button, BranchDropdown, ModelDropdown } from '../shared';
 import { ExtensionMessage, WebviewRequest } from '../shared/types';
-import { BranchSelection, BranchDropdown, ModelDropdown, GenerationForm, ResultDisplay } from './components';
+import { BranchSelection, GenerationForm, ResultDisplay } from './components';
 import './styles/pr-description.css';
 
 declare global {

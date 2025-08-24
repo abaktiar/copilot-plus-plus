@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ModelConfig } from '../../shared';
+import { ModelConfig } from '../config/models';
 
 interface ModelDropdownProps {
   models: ModelConfig[];

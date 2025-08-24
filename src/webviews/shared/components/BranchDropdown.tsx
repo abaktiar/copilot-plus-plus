@@ -6,6 +6,7 @@ interface BranchDropdownProps {
   onBranchChange: (branch: string) => void;
   label: string;
   placeholder: string;
+  currentBranch?: string;
 }
 
 export function BranchDropdown({
@@ -13,7 +14,8 @@ export function BranchDropdown({
   selectedBranch,
   onBranchChange,
   label,
-  placeholder
+  placeholder,
+  currentBranch
 }: BranchDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -37,6 +39,8 @@ export function BranchDropdown({
     setIsOpen(false);
   };
 
+  const displayName = selectedBranch + (selectedBranch === currentBranch ? ' (current)' : '');
+
   return (
     <div className="branch-dropdown" ref={dropdownRef}>
       <button
@@ -45,7 +49,7 @@ export function BranchDropdown({
         title={`Click to select ${label} branch`}
       >
         <span className="branch-label">{label}:</span>
-        <code className="branch-name">{selectedBranch || placeholder}</code>
+        <code className="branch-name">{displayName || placeholder}</code>
         <span className="dropdown-arrow">▼</span>
       </button>
       
@@ -57,7 +61,7 @@ export function BranchDropdown({
               className={`branch-option ${branch === selectedBranch ? 'selected' : ''}`}
               onClick={() => handleBranchSelect(branch)}
             >
-              {branch}
+              {branch + (branch === currentBranch ? ' (current)' : '')}
             </button>
           ))}
         </div>
