@@ -10,14 +10,6 @@ import { ExtensionMessage, WebviewRequest } from '../shared/types';
 import { BranchSelection, GenerationForm, ResultDisplay } from './components';
 import './styles/pr-description.css';
 
-declare global {
-  interface Window {
-    marked?: {
-      parse: (content: string) => string;
-    };
-  }
-}
-
 export interface PrResult {
   title: string;
   description: string;

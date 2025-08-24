@@ -27,16 +27,6 @@ Object.defineProperty(window, 'sharedModelConfig', {
   configurable: true
 });
 
-// Mock marked library
-Object.defineProperty(window, 'marked', {
-  value: {
-    parse: (content: string) => `<p>${content}</p>`,
-    setOptions: jest.fn()
-  },
-  writable: true,
-  configurable: true
-});
-
 // Mock ResizeObserver
 global.ResizeObserver = jest.fn().mockImplementation(() => ({
   observe: jest.fn(),

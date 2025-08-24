@@ -210,7 +210,7 @@ body {
 .results {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 8px; /* tighter gap between sections */
     animation: fadeIn 0.4s ease-out;
 }
 
@@ -221,6 +221,7 @@ body {
     background: var(--card-bg);
     box-shadow: var(--shadow-sm);
     transition: box-shadow var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+    margin: 0; /* remove any default margins */
 }
 
 .result-section:hover {
@@ -232,35 +233,35 @@ body {
     justify-content: space-between;
     align-items: center;
     background-color: color-mix(in srgb, var(--card-bg) 92%, var(--vscode-button-background));
-    padding: 12px 16px;
+    padding: 8px 12px; /* tighter header padding */
     border-bottom: 1px solid color-mix(in srgb, var(--vscode-panel-border) 90%, var(--vscode-button-background));
 }
 
 .result-header h3 {
     margin: 0;
-    font-size: 14px;
+    font-size: 13px; /* slightly smaller */
     font-weight: 600;
     opacity: 0.95;
     letter-spacing: -0.01em;
 }
 
 .result-content {
-    padding: 16px 18px;
+    padding: 12px 14px; /* tighter inner padding */
     background-color: var(--vscode-editor-background);
-    white-space: pre-wrap;
-    line-height: 1.6;
+    white-space: normal; /* avoid preserving extra whitespace */
+    line-height: 1.45; /* more compact line height */
 }
 
 .title-content {
     font-weight: 600;
-    font-size: 18px;
+    font-size: 16px; /* slightly smaller */
     letter-spacing: -0.01em;
 }
 
 .description-content {
-    max-height: 56vh;
+    max-height: 60vh; /* allow a bit more visible content */
     overflow-y: auto;
-    padding-right: 8px;
+    padding-right: 6px;
 }
 
 .description-content::-webkit-scrollbar {
@@ -314,12 +315,12 @@ body {
 .copy-all {
     display: flex;
     justify-content: flex-end;
-    margin-top: 8px;
+    margin-top: 6px; /* tighter spacing */
 }
 
 .copy-all-button {
-    padding: 8px 16px;
-    font-size: 13px;
+    padding: 6px 12px;
+    font-size: 12px;
     background: var(--gradient-primary);
     color: var(--vscode-button-foreground);
     font-weight: 500;
@@ -341,80 +342,106 @@ body {
 
 /* Markdown Styles */
 .markdown-body {
-    line-height: 1.6;
-    font-size: 14px;
+    line-height: 1.45;
+    font-size: 13.5px; /* slightly smaller base font */
 }
 
 .markdown-body h1,
 .markdown-body h2,
 .markdown-body h3 {
-    margin-top: 24px;
-    margin-bottom: 16px;
+    margin-top: 12px;
+    margin-bottom: 6px;
     font-weight: 600;
-    line-height: 1.25;
-    letter-spacing: -0.02em;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+}
+
+.markdown-body h1:first-child,
+.markdown-body h2:first-child,
+.markdown-body h3:first-child {
+    margin-top: 0;
 }
 
 .markdown-body h1 {
-    font-size: 1.8em;
+    font-size: 1.4em;
     border-bottom: 1px solid var(--vscode-panel-border);
-    padding-bottom: 0.3em;
+    padding-bottom: 0.15em;
 }
 
 .markdown-body h2 {
-    font-size: 1.5em;
+    font-size: 1.25em;
     border-bottom: 1px solid var(--vscode-panel-border);
-    padding-bottom: 0.3em;
+    padding-bottom: 0.15em;
 }
 
 .markdown-body h3 {
-    font-size: 1.25em;
+    font-size: 1.1em;
 }
 
 .markdown-body ul,
 .markdown-body ol {
-    padding-left: 2em;
-    margin-bottom: 16px;
+    padding-left: 1.2em;
+    margin-bottom: 8px;
+    margin-top: 0;
 }
 
 .markdown-body li {
-    margin-bottom: 6px;
+    margin-bottom: 2px;
 }
 
 .markdown-body code {
-    padding: 0.2em 0.4em;
+    padding: 0.08em 0.25em;
     margin: 0;
-    font-size: 85%;
+    font-size: 82%;
     background-color: color-mix(in srgb, var(--vscode-textCodeBlock-background) 97%, var(--vscode-button-background));
-    border-radius: 4px;
+    border-radius: 3px;
     font-family: var(--vscode-editor-font-family);
 }
 
 .markdown-body pre {
-    padding: 16px;
+    padding: 10px;
     overflow: auto;
-    font-size: 85%;
-    line-height: 1.45;
+    font-size: 82%;
+    line-height: 1.35;
     background-color: var(--vscode-textCodeBlock-background);
     border-radius: var(--border-radius-sm);
-    margin-bottom: 16px;
+    margin-bottom: 10px;
+    margin-top: 0;
     border: 1px solid color-mix(in srgb, var(--vscode-panel-border) 90%, transparent);
 }
 
 .markdown-body p {
-    margin-bottom: 16px;
+    margin-bottom: 8px;
     margin-top: 0;
 }
 
+.markdown-body p:last-child {
+    margin-bottom: 0;
+}
+
 .markdown-body blockquote {
-    padding: 0.8em 1em;
+    padding: 0.5em 0.7em;
     color: var(--vscode-foreground);
     opacity: 0.8;
     border-left: 3px solid var(--vscode-button-background);
-    margin: 0 0 16px 0;
+    margin: 0 0 10px 0;
     background: color-mix(in srgb, var(--card-bg) 94%, var(--vscode-button-background));
     border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0;
 }
+
+/* Optional compact modifier to force minimal spacing */
+.markdown-body.compact {
+    line-height: 1.35;
+    font-size: 13px;
+}
+.markdown-body.compact h1,
+.markdown-body.compact h2,
+.markdown-body.compact h3 { margin-top: 10px; margin-bottom: 4px; }
+.markdown-body.compact p { margin-bottom: 6px; }
+.markdown-body.compact ul,
+.markdown-body.compact ol { margin-bottom: 6px; padding-left: 1.05em; }
+.markdown-body.compact pre { padding: 8px; margin-bottom: 8px; font-size: 80%; line-height: 1.3; }
+.markdown-body.compact code { font-size: 80%; }
 
 /* Empty State */
 .empty-state {
