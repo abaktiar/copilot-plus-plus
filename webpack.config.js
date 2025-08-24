@@ -35,7 +35,12 @@ module.exports = {
             configFile: 'tsconfig.webviews.json'
           }
         },
-        exclude: /node_modules/
+        exclude: [
+          /node_modules/,
+          /__tests__/,
+          /\.test\./,
+          /\.spec\./
+        ]
       },
       {
         test: /\.css$/i,

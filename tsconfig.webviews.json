@@ -28,6 +28,9 @@
     "node_modules",
     "media",
     "dist",
-    "out"
+    "out",
+    "**/__tests__/**",
+    "**/*.test.*",
+    "**/*.spec.*"
   ]
 }
