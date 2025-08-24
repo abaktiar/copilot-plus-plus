@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { VSCodeAPI, WebviewRequest, ExtensionMessage } from '../types';
 
 declare global {
@@ -45,4 +45,50 @@ export function useMessageListener(
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, [onMessage]);
+}export f
+unction useLoadingState(initialState: boolean = false) {
+  const [isLoading, setIsLoading] = useState(initialState);
+
+  const startLoading = () => setIsLoading(true);
+  const stopLoading = () => setIsLoading(false);
+
+  return {
+    isLoading,
+    startLoading,
+    stopLoading,
+    setIsLoading
+  };
+}
+
+export function useErrorState() {
+  const [error, setError] = useState<string | null>(null);
+
+  const clearError = () => setError(null);
+  const setErrorMessage = (message: string) => setError(message);
+
+  return {
+    error,
+    setError: setErrorMessage,
+    clearError,
+    hasError: error !== null
+  };
+}
+
+export function useWebviewState<T>(initialState: T) {
+  const { getState, setState } = useVSCodeAPI();
+  const [state, setStateInternal] = useState<T>(() => {
+    const savedState = getState();
+    return savedState || initialState;
+  });
+
+  const updateState = (newState: T | ((prevState: T) => T)) => {
+    const updatedState = typeof newState === 'function' 
+      ? (newState as (prevState: T) => T)(state)
+      : newState;
+    
+    setStateInternal(updatedState);
+    setState(updatedState);
+  };
+
+  return [state, updateState] as const;
 }
