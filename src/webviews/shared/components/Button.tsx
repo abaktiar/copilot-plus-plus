@@ -1,10 +1,7 @@
 import React, { ButtonHTMLAttributes } from 'react';
+import { ButtonProps as BaseButtonProps } from '../types';
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'danger';
-  size?: 'small' | 'medium' | 'large';
-  loading?: boolean;
-}
+interface ButtonProps extends BaseButtonProps, Omit<ButtonHTMLAttributes<HTMLButtonElement>, keyof BaseButtonProps> {}
 
 export function Button({ 
   variant = 'primary', 

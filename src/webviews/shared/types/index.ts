@@ -1,3 +1,5 @@
+import React from 'react';
+
 // Webview ↔ Extension communication types
 export interface WebviewMessage {
   command: string;
@@ -59,4 +61,31 @@ export interface BranchSelectorProps {
   selectedBranch: string;
   onBranchChange: (branch: string) => void;
   label: string;
+}
+
+export interface LoadingSpinnerProps {
+  size?: 'small' | 'medium' | 'large';
+  message?: string;
+}
+
+export interface ButtonProps {
+  variant?: 'primary' | 'secondary' | 'danger';
+  size?: 'small' | 'medium' | 'large';
+  loading?: boolean;
+  children: React.ReactNode;
+  disabled?: boolean;
+  className?: string;
+  onClick?: () => void;
+}
+
+export interface IconProps {
+  name: string;
+  size?: number;
+  className?: string;
+  color?: string;
+}
+
+export interface ErrorBoundaryProps {
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
 }

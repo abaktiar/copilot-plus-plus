@@ -1,6 +1,39 @@
 /* Shared component styles */
 
 /* Error Boundary */
+.error-boundary {
+  padding: 20px;
+  text-align: center;
+  border: 1px solid var(--vscode-errorForeground);
+  border-radius: 4px;
+  background-color: var(--vscode-inputValidation-errorBackground);
+  color: var(--vscode-errorForeground);
+}
+
+.error-content h3 {
+  margin-top: 0;
+  color: var(--vscode-errorForeground);
+}
+
+.error-details {
+  margin: 16px 0;
+  text-align: left;
+}
+
+.error-details summary {
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.error-details pre {
+  background-color: var(--vscode-textCodeBlock-background);
+  padding: 8px;
+  border-radius: 2px;
+  font-size: 12px;
+  overflow-x: auto;
+}
+
 .error-fallback {
   padding: 20px;
   text-align: center;
@@ -204,4 +237,39 @@
 .branch-select:focus {
   outline: 1px solid var(--vscode-focusBorder);
   outline-offset: -1px;
+}/* Ic
+on */
+.icon {
+  display: inline-block;
+  vertical-align: middle;
+  fill: currentColor;
+  flex-shrink: 0;
+}
+
+.icon-copy {
+  cursor: pointer;
+}
+
+.icon-copy:hover {
+  opacity: 0.8;
+}
+
+.icon-loading {
+  animation: spin 1s linear infinite;
+}
+
+.icon-error {
+  color: var(--vscode-errorForeground);
+}
+
+.icon-warning {
+  color: var(--vscode-notificationsWarningIcon-foreground);
+}
+
+.icon-info {
+  color: var(--vscode-notificationsInfoIcon-foreground);
+}
+
+.icon-check {
+  color: var(--vscode-terminal-ansiGreen);
 }

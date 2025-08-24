@@ -1,9 +1,5 @@
 import React from 'react';
-
-interface LoadingSpinnerProps {
-  size?: 'small' | 'medium' | 'large';
-  message?: string;
-}
+import { LoadingSpinnerProps } from '../types';
 
 export function LoadingSpinner({ size = 'medium', message }: LoadingSpinnerProps) {
   const sizeClass = {

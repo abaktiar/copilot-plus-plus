@@ -1,14 +1,70 @@
-import React, { ReactNode } from 'react';
+import React, { Component } from 'react';
+import { ErrorBoundaryProps } from '../types';
 
-interface Props {
-  children: ReactNode;
-  fallback?: ReactNode;
+interface State {
+  hasError: boolean;
+  error?: Error;
 }
 
-// Simple error boundary wrapper - for now just render children
-// In a real implementation, we'd use a proper error boundary library
-export function ErrorBoundary({ children, fallback }: Props) {
-  // For now, just render the children directly
-  // TODO: Implement proper error boundary in a future task
-  return <>{children}</>;
+export class ErrorBoundary extends Component<ErrorBoundaryProps, State> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Webview Error:', error, errorInfo);
+    
+    // Send error to extension for logging
+    try {
+      const vscode = (window as any).acquireVsCodeApi?.();
+      if (vscode) {
+        vscode.postMessage({
+          command: 'error',
+          data: { 
+            error: error.message, 
+            stack: error.stack,
+            componentStack: errorInfo.componentStack
+          }
+        });
+      }
+    } catch (e) {
+      console.error('Failed to send error to extension:', e);
+    }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      if (this.props.fallback) {
+        return this.props.fallback;
+      }
+
+      return (
+        <div className="error-boundary">
+          <div className="error-content">
+            <h3>Something went wrong</h3>
+            <p>An error occurred while rendering this component.</p>
+            {this.state.error && (
+              <details className="error-details">
+                <summary>Error details</summary>
+                <pre>{this.state.error.message}</pre>
+              </details>
+            )}
+            <button 
+              className="btn btn-primary"
+              onClick={() => this.setState({ hasError: false, error: undefined })}
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
 }
