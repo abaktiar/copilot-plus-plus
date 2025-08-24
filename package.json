@@ -328,15 +328,20 @@
   },
   "scripts": {
     "vscode:prepublish": "pnpm run package",
-    "compile": "pnpm run check-types && pnpm run lint && node esbuild.js",
+    "compile": "pnpm run build:webviews && pnpm run build:extension",
+    "build:webviews": "webpack --mode=development",
+    "build:webviews:prod": "NODE_ENV=production webpack --mode=production",
+    "build:extension": "pnpm run check-types && pnpm run lint && node esbuild.js",
     "watch": "npm-run-all -p watch:*",
+    "watch:webviews": "webpack --mode=development --watch",
     "watch:esbuild": "node esbuild.js --watch",
     "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
-    "package": "pnpm run check-types && pnpm run lint && node esbuild.js --production",
+    "package": "pnpm run build:webviews:prod && pnpm run check-types && pnpm run lint && node esbuild.js --production",
     "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
     "check-types": "tsc --noEmit",
+    "check-types:webviews": "tsc --noEmit --project tsconfig.webviews.json",
     "lint": "eslint src",
     "test": "vscode-test",
     "dev": "pnpm run compile && code --extensionDevelopmentPath=${PWD} --enable-proposed-api=albaktiar.copilot-plus-plus ."
@@ -344,16 +349,24 @@
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
+    "@types/react": "^19.1.11",
+    "@types/react-dom": "^19.1.7",
     "@types/vscode": "^1.98.0",
     "@typescript-eslint/eslint-plugin": "^8.25.0",
     "@typescript-eslint/parser": "^8.25.0",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.4.1",
+    "css-loader": "^7.1.2",
     "esbuild": "^0.25.0",
     "eslint": "^9.21.0",
+    "html-webpack-plugin": "^5.6.4",
     "npm-run-all": "^4.1.5",
-    "typescript": "^5.7.3"
-  },
-  "dependencies": {}
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "style-loader": "^4.0.0",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.7.3",
+    "webpack": "^5.101.3",
+    "webpack-cli": "^6.0.1"
+  }
 }
-

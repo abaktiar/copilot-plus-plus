@@ -1,0 +1,33 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "jsx": "react-jsx",
+    "declaration": false,
+    "outDir": "./media",
+    "rootDir": "./src/webviews",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["src/webviews/shared/*"],
+      "@shared": ["src/webviews/shared"]
+    }
+  },
+  "include": [
+    "src/webviews/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "media",
+    "dist",
+    "out"
+  ]
+}
