@@ -23,70 +23,70 @@ interface CommitContext {
 async function parseGitDiffWithLineDetails(diff: string): Promise<DetailedDiffResult[]> {
   // Parse diff to extract precise line numbers and content
   const diffResults: DetailedDiffResult[] = [];
-  
+
   // Split diff into file chunks
   const fileChunks = diff.split(/^diff --git /m);
-  
+
   for (const chunk of fileChunks) {
     if (!chunk.trim()) {
       continue;
     }
-    
+
     // Start with 'diff --git' prefix that was removed by split
     const fileChunk = `diff --git ${chunk}`;
-    
+
     // Extract file name
     const fileNameMatch = fileChunk.match(/^diff --git a\/(.+) b\/(.+)$/m);
     if (!fileNameMatch) {
       continue;
     }
-    
+
     const filePath = fileNameMatch[2]; // Use the new file name (b/)
-    
+
     // Process the chunk's content sections (hunks)
     const hunks = fileChunk.split(/^@@/m).slice(1); // Skip the header part
     let currentHunk: DetailedDiffHunk | null = null;
-    
+
     for (const hunkContent of hunks) {
       const hunkHeaderMatch = hunkContent.match(/^[ -+](-\d+,\d+ \+\d+,\d+) @@/);
       if (!hunkHeaderMatch) {
         continue;
       }
-      
+
       const hunkHeader = hunkHeaderMatch[1];
       const [oldRange, newRange] = hunkHeader.split(' ');
-      
+
       // Parse line ranges
       const oldStart = parseInt(oldRange.substring(1).split(',')[0], 10);
       const newStart = parseInt(newRange.substring(1).split(',')[0], 10);
-      
+
       // Process hunk content line by line
       const hunkLines = hunkContent.split('\n').slice(1); // Skip the hunk header line
       let oldLineNum = oldStart;
       let newLineNum = newStart;
-      
+
       currentHunk = {
         oldStart,
         newStart,
-        lines: []
+        lines: [],
       };
-      
+
       // Process each line in the hunk
       for (const line of hunkLines) {
         if (!line) {
           continue;
         }
-        
+
         const type = line[0];
         const content = line.substring(1);
-        
+
         switch (type) {
           case '+': // Added line
             currentHunk.lines.push({
               type: 'added',
               oldLineNum: null,
               newLineNum: newLineNum++,
-              content
+              content,
             });
             break;
           case '-': // Removed line
@@ -94,7 +94,7 @@ async function parseGitDiffWithLineDetails(diff: string): Promise<DetailedDiffRe
               type: 'removed',
               oldLineNum: oldLineNum++,
               newLineNum: null,
-              content
+              content,
             });
             break;
           case ' ': // Context line (unchanged)
@@ -102,24 +102,24 @@ async function parseGitDiffWithLineDetails(diff: string): Promise<DetailedDiffRe
               type: 'context',
               oldLineNum: oldLineNum++,
               newLineNum: newLineNum++,
-              content
+              content,
             });
             break;
         }
       }
-      
+
       // Create detailed result for this file+hunk
       if (currentHunk.lines.length > 0) {
         diffResults.push({
           filePath,
           hunk: currentHunk,
           contextBefore: extractLinesAround(currentHunk, 'before', 3),
-          contextAfter: extractLinesAround(currentHunk, 'after', 3)
+          contextAfter: extractLinesAround(currentHunk, 'after', 3),
         });
       }
     }
   }
-  
+
   return diffResults;
 }
 
@@ -128,10 +128,10 @@ async function parseGitDiffWithLineDetails(diff: string): Promise<DetailedDiffRe
  */
 function extractLinesAround(hunk: DetailedDiffHunk, position: 'before' | 'after', count: number): string[] {
   const context: string[] = [];
-  
+
   if (position === 'before') {
     // Get lines before first added or removed line
-    const firstChangeIndex = hunk.lines.findIndex(l => l.type !== 'context');
+    const firstChangeIndex = hunk.lines.findIndex((l) => l.type !== 'context');
     if (firstChangeIndex !== -1) {
       for (let i = Math.max(0, firstChangeIndex - count); i < firstChangeIndex; i++) {
         if (hunk.lines[i].type === 'context') {
@@ -139,9 +139,10 @@ function extractLinesAround(hunk: DetailedDiffHunk, position: 'before' | 'after'
         }
       }
     }
-  } else { // after
+  } else {
+    // after
     // Get lines after last added or removed line
-    const lastChangeIndex = [...hunk.lines].reverse().findIndex(l => l.type !== 'context');
+    const lastChangeIndex = [...hunk.lines].reverse().findIndex((l) => l.type !== 'context');
     if (lastChangeIndex !== -1) {
       const lastIndex = hunk.lines.length - 1 - lastChangeIndex;
       for (let i = lastIndex + 1; i < Math.min(hunk.lines.length, lastIndex + 1 + count); i++) {
@@ -151,7 +152,7 @@ function extractLinesAround(hunk: DetailedDiffHunk, position: 'before' | 'after'
       }
     }
   }
-  
+
   return context;
 }
 
@@ -313,11 +314,16 @@ export class GitService {
       // Only extract ticket if enabled in settings
       let ticketNumber: string | undefined = undefined;
       if (includeTicket) {
-        const ticketRegex = new RegExp(config.ticketPattern);
-        const ticketMatch = branch.match(ticketRegex);
-        ticketNumber = ticketMatch ? ticketMatch[1] : undefined;
-        if (ticketNumber) {
-          this.log(`Extracted ticket number: ${ticketNumber}`);
+        const ticketRegex = new RegExp(config.ticketPattern, 'gi'); // Add global and case-insensitive flags
+        const ticketMatches = branch.match(ticketRegex);
+        if (ticketMatches) {
+          // Extract all ticket numbers and format them consistently
+          const tickets = ticketMatches.map((match) => {
+            const parts = match.match(/([A-Za-z]+)-?(\d+)/i);
+            return parts ? `${parts[1].toUpperCase()}-${parts[2]}` : match.toUpperCase();
+          });
+          ticketNumber = tickets.join(', ');
+          this.log(`Extracted ticket number(s): ${ticketNumber}`);
         } else {
           this.log('No ticket number found in branch name');
         }
@@ -559,7 +565,6 @@ export class GitService {
         cwd: workspaceRoot,
       });
 
-
       if (!stdout.trim()) {
         this.log('No files changed between branches');
         return [];
@@ -590,13 +595,13 @@ export class GitService {
   private getGitExclusionPatterns(): string {
     const config = ConfigService.getBaseConfig();
     const ignoredPatterns = config.ignoredFilePatterns || [];
-    
+
     if (ignoredPatterns.length === 0) {
       return '';
     }
-    
+
     // Convert each pattern to a git pathspec exclusion format
-    return ignoredPatterns.map(pattern => `":(exclude)${pattern}"`).join(' ');
+    return ignoredPatterns.map((pattern) => `":(exclude)${pattern}"`).join(' ');
   }
 
   /**

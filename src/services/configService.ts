@@ -52,7 +52,7 @@ export class ConfigService {
   languageModel: config.get<string>('languageModel') || 'gpt-5-mini',
       commitStyle: config.get<string>('commitStyle') || 'conventional',
       includeTicketNumber: config.get<boolean>('includeTicketNumber') ?? true,
-      ticketPattern: config.get<string>('ticketPattern') || '(?:^|\\/)([A-Z]+-\\d+)(?:\\/|$|[-_])',
+      ticketPattern: config.get<string>('ticketPattern') || '([A-Za-z]+)-?(\\d+)',
     };
   }
 

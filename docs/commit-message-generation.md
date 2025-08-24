@@ -102,20 +102,20 @@ When enabled, the extension will extract ticket numbers (like JIRA issue IDs) fr
 Define the regular expression used to extract ticket numbers from branch names.
 
 ```json
-"copilotPlusPlus.ticketPattern": "(?:^|\\/)([A-Z]+-\\d+)(?:\\/|$|[-_])"
+"copilotPlusPlus.ticketPattern": "([A-Za-z]+)-?(\\d+)"
 ```
 
-The default pattern is designed to match common Jira ticket formats in branch names. You can customize this pattern to match your team's specific branch naming conventions.
+The default pattern is designed to match common ticket formats in branch names and supports extracting multiple ticket numbers from a single branch. The pattern is case-insensitive and will automatically format ticket numbers with uppercase prefixes.
 
 #### Example Branch Name Formats Supported by Default
 
-| Branch Name | Extracted Ticket |
-|-------------|-----------------|
+| Branch Name | Extracted Ticket(s) |
+|-------------|-------------------|
 | `feature/ABC-123-new-feature` | `ABC-123` |
-| `ABC-123/feature-branch` | `ABC-123` |
-| `ABC-123-feature-description` | `ABC-123` |
-| `bugfix/ABC-123/fix-issue` | `ABC-123` |
-| `john/ABC-123_new-feature` | `ABC-123` |
+| `story/HFMS-382-for-stage` | `HFMS-382` |
+| `bug-fixes/hfms-362-ptms-1391` | `HFMS-362, PTMS-1391` |
+| `hotfix/xyz-456-def-789` | `XYZ-456, DEF-789` |
+| `feature/abc123-new-feature` | `ABC-123` |
 
 #### Custom Ticket Pattern Examples
 
@@ -223,7 +223,7 @@ To add a keyboard shortcut for quicker access:
   "copilotPlusPlus.languageModel": "gpt-4o-mini",
   "copilotPlusPlus.commitStyle": "conventional",
   "copilotPlusPlus.includeTicketNumber": true,
-  "copilotPlusPlus.ticketPattern": "(?:^|\\/)([A-Z]+-\\d+)(?:\\/|$|[-_])"
+  "copilotPlusPlus.ticketPattern": "([A-Za-z]+)-?(\\d+)"
 }
 ```
 
