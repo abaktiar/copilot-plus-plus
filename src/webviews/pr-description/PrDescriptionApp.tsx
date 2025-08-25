@@ -22,6 +22,7 @@ export function PrDescriptionApp() {
   const { error, setError, clearError } = useErrorState();
   
   const [branches, setBranches] = useState<string[]>([]);
+  const [currentBranch, setCurrentBranch] = useState('');
   const [sourceBranch, setSourceBranch] = useState('');
   const [targetBranch, setTargetBranch] = useState('');
   const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
@@ -38,6 +39,7 @@ export function PrDescriptionApp() {
       switch (message.command) {
         case 'branchesList':
           setBranches(message.branches || []);
+          setCurrentBranch(message.currentBranch || '');
           setSourceBranch(message.currentBranch || '');
           setBranchesLoaded(true);
 
@@ -50,11 +52,35 @@ export function PrDescriptionApp() {
           if (message.defaultTargetBranch && message.branches?.includes(message.defaultTargetBranch)) {
             setTargetBranch(message.defaultTargetBranch);
           } else {
-            // Fall back to main/master/develop if available
-            const defaultTarget = message.branches?.find((b) =>
-              ['main', 'master', 'develop'].includes(b.toLowerCase())
-            );
-            setTargetBranch(defaultTarget || '');
+            // Fall back to common default branches if available
+            // Priority order: main, master, develop, dev, prod, trunk, release
+            const commonDefaults = ['main', 'master', 'develop', 'dev', 'prod', 'trunk', 'release'];
+            let defaultTarget = '';
+
+            // Look for exact matches first (prioritizing order)
+            for (const defaultName of commonDefaults) {
+              const exactMatch = message.branches?.find((b) => b.toLowerCase() === defaultName);
+              if (exactMatch) {
+                defaultTarget = exactMatch;
+                break;
+              }
+            }
+
+            // If no exact match, check with origin/ prefix stripped
+            if (!defaultTarget) {
+              for (const defaultName of commonDefaults) {
+                const prefixedMatch = message.branches?.find((b) => {
+                  const branchName = b.replace(/^origin\//, '').toLowerCase();
+                  return branchName === defaultName;
+                });
+                if (prefixedMatch) {
+                  defaultTarget = prefixedMatch;
+                  break;
+                }
+              }
+            }
+
+            setTargetBranch(defaultTarget);
           }
           break;
         case 'generating':
@@ -155,18 +181,21 @@ export function PrDescriptionApp() {
   }, [sourceBranch, targetBranch]);
 
   // Copy to clipboard
-  const handleCopy = useCallback((text: string) => {
-    const message: WebviewRequest = {
-      command: 'copyToClipboard',
-      data: { text }
-    };
-    // The backend expects the text directly on the message object
-    (message as any).text = text;
-    postMessage(message);
-  }, [postMessage]);
+  const handleCopy = useCallback(
+    (text: string) => {
+      const message: WebviewRequest = {
+        command: 'copyToClipboard',
+        data: { text },
+      };
+      // The backend expects the text directly on the message object
+      (message as any).text = text;
+      postMessage(message);
+    },
+    [postMessage]
+  );
 
   console.log('PrDescriptionApp: Rendering component', { branches, sourceBranch, targetBranch, models });
-  
+
   return (
     <div className='container'>
       <div className='header-row'>
@@ -179,7 +208,7 @@ export function PrDescriptionApp() {
       </div>
 
       {/* Interactive Branch Selector with Generate Button */}
-      {sourceBranch && targetBranch && (
+      {sourceBranch && (
         <div className='branch-selector-card'>
           <div className='branch-flow'>
             <BranchDropdown
@@ -188,6 +217,7 @@ export function PrDescriptionApp() {
               onBranchChange={setSourceBranch}
               label='source'
               placeholder='Select source branch'
+              currentBranch={currentBranch}
             />
             <span className='branch-arrow'>→</span>
             <BranchDropdown
@@ -196,6 +226,7 @@ export function PrDescriptionApp() {
               onBranchChange={setTargetBranch}
               label='target'
               placeholder='Select target branch'
+              currentBranch={currentBranch}
             />
           </div>
 
@@ -203,7 +234,7 @@ export function PrDescriptionApp() {
             <Button
               variant='primary'
               onClick={handleGenerate}
-              disabled={isLoading || !!(sourceBranch && targetBranch) === false}
+              disabled={isLoading || !sourceBranch || !targetBranch}
               loading={isLoading}
               className='generate-button'>
               {isLoading ? (

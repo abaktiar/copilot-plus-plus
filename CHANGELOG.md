@@ -2,6 +2,24 @@
 All notable changes to the "copilot-plus-plus" extension will be documented in this file.
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.1.3] - 2025-08-25 - PR Description UI Improvements
+
+### Fixed
+- **PR Description Generator**: Fixed branch selection card not appearing when target branch auto-selection fails
+- Improved fallback logic for default target branch detection to include common branch names: `dev`, `prod`, `trunk`, `release`
+- Enhanced branch matching to handle repositories without standard `main`/`master`/`develop` branches
+- Fixed UI visibility issue where branch selection card was hidden when no target branch was auto-selected
+
+### Added
+- **Branch Display Enhancement**: Added "(Current)" indicator to current branch in PR Description Generator dropdowns
+- Consistent branch labeling across PR Description and PR Review features
+- Better visual indication of the active/current branch in branch selection UI
+
+### Changed
+- Branch selection card now appears as long as source branch is available, even if target branch needs manual selection
+- Improved target branch auto-selection with priority-based matching for better user experience
+- Enhanced branch dropdown UI consistency across all features
+
 ## [0.1.2] - 2025-08-24 - Major Frontend Architecture Overhaul
 This major release represents a complete modernization of the extension's frontend architecture with significant improvements to user experience, performance, and maintainability.
 
