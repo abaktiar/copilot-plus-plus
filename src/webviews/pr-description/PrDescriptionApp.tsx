@@ -29,9 +29,9 @@ export function PrDescriptionApp() {
   const [result, setResult] = useState<PrResult | null>(null);
   const [branchesLoaded, setBranchesLoaded] = useState(false);
 
-  // Use models from shared configuration (no external loading needed)
-  const models = AVAILABLE_MODELS;
-  console.log('PrDescriptionApp: Using bundled models:', models.length, 'models available');
+  // Models: start with bundled fallback, prefer dynamic models from extension when provided
+  const [models, setModels] = useState(AVAILABLE_MODELS);
+  console.log('PrDescriptionApp: Starting with bundled models:', models.length, 'available');
 
   // Handle messages from extension
   const handleMessage = useCallback(
@@ -44,8 +44,11 @@ export function PrDescriptionApp() {
           setBranchesLoaded(true);
 
           // Set the selected model if provided from backend
-          if (message.languageModel) {
-            setSelectedModel(message.languageModel);
+          if (message.models && message.models.length > 0) {
+            setModels(message.models);
+          }
+          if (message.defaultModel || message.languageModel) {
+            setSelectedModel(message.defaultModel || message.languageModel!);
           }
 
           // First check for defaultTargetBranch from config
@@ -194,7 +197,7 @@ export function PrDescriptionApp() {
     [postMessage]
   );
 
-  console.log('PrDescriptionApp: Rendering component', { branches, sourceBranch, targetBranch, models });
+  console.log('PrDescriptionApp: Rendering component', { branches, sourceBranch, targetBranch, modelsCount: models.length });
 
   return (
     <div className='container'>

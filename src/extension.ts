@@ -4,6 +4,8 @@ import { registerPrReviewCommand } from './commands/prReviewCommand';
 import { registerPrDescriptionCommand } from './commands/prDescriptionPanel';
 import { registerBreakingChangesCommand } from './commands/breakingChangesCommand';
 import { LoggingService } from './services/loggingService';
+import { registerSelectLanguageModelCommand } from './commands/selectLanguageModel';
+import { registerResetLanguageModelCommand } from './commands/resetLanguageModel';
 import { ConfigService } from './services/configService';
 // Keep track of view provider removed - using standalone panels now
 
@@ -17,6 +19,8 @@ export function activate(context: vscode.ExtensionContext) {
   registerPrReviewCommand(context);
   registerPrDescriptionCommand(context);
   registerBreakingChangesCommand(context);
+  registerSelectLanguageModelCommand(context);
+  registerResetLanguageModelCommand(context);
 
   // Register debug command to log available models
   const logModelsCommand = vscode.commands.registerCommand('copilot-plus-plus.logAvailableModels', async () => {

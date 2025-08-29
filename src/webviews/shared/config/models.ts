@@ -5,6 +5,7 @@ export interface ModelConfig {
   contextWindow?: number;
   maxTokens?: number;
   supportsVision?: boolean;
+  usageTag?: string;
   costPer1kTokens?: {
     input: number;
     output: number;

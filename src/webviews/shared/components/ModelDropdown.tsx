@@ -45,7 +45,9 @@ export function ModelDropdown({
       >
         <span className="model-label">model:</span>
         <code className="model-name">
-          {selectedModelData?.name?.split(':')[0]?.trim() || selectedModel}
+          {selectedModelData
+            ? `${selectedModelData.name.split(':')[0].trim()}${selectedModelData.usageTag ? ` — ${selectedModelData.usageTag}` : ''}`
+            : selectedModel}
         </code>
         <span className="dropdown-arrow">▼</span>
       </button>
@@ -59,7 +61,10 @@ export function ModelDropdown({
               onClick={() => handleModelSelect(model.id)}
             >
               <div className="model-option-content">
-                <span className="model-option-name">{model.name.split(':')[0].trim()}</span>
+                <span className="model-option-name">
+                  {model.name.split(':')[0].trim()}
+                  {model.usageTag ? ` — ${model.usageTag}` : ''}
+                </span>
                 {model.name.includes(':') && (
                   <span className="model-option-desc">{model.name.split(':')[1].trim()}</span>
                 )}

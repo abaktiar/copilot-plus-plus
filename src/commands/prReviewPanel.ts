@@ -3,6 +3,7 @@ import * as path from "path";
 import { GitService } from "../services/gitService";
 import { CopilotService } from "../services/copilotService";
 import { ConfigService } from "../services/configService";
+import { getAvailableCopilotModels, chooseDefaultModel } from "../services/modelService";
 import { PrReviewService } from "../services/prReview/prReviewService";
 import { ReviewProgressUpdate } from "../services/prReview/reviewQueueManager";
 
@@ -65,16 +66,20 @@ export class PrReviewPanel {
           case "getBranches":
             const branches = await this._gitService.getAvailableBranches();
             const currentBranch = await this._gitService.getCurrentBranch();
-            const defaultTargetBranch =
-              this._gitService.getDefaultTargetBranch();
-            const languageModel = ConfigService.getLanguageModelFamily();
+            const defaultTargetBranch = this._gitService.getDefaultTargetBranch();
+            const configuredModel = ConfigService.getLanguageModelFamily();
+
+            const models = await getAvailableCopilotModels();
+            const defaultModel = chooseDefaultModel(models, configuredModel) || configuredModel;
 
             this._panel.webview.postMessage({
               command: "branchesList",
               branches,
               currentBranch,
               defaultTargetBranch,
-              languageModel,
+              languageModel: defaultModel,
+              models,
+              defaultModel,
             });
             break;
 

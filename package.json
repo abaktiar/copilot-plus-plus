@@ -71,6 +71,16 @@
         "title": "Log Available Language Models",
         "icon": "$(debug-console)",
         "category": "Copilot++ Debug"
+      },
+      {
+        "command": "copilot-plus-plus.selectLanguageModel",
+        "title": "Copilot++: Select Language Model",
+        "category": "Copilot++"
+      },
+      {
+        "command": "copilot-plus-plus.resetLanguageModel",
+        "title": "Copilot++: Reset Language Model",
+        "category": "Copilot++"
       }
     ],
     "menus": {
@@ -101,30 +111,8 @@
       "properties": {
         "copilotPlusPlus.languageModel": {
           "type": "string",
-          "enum": [
-            "gpt-4o",
-            "gpt-4o-mini",
-            "gpt-4.1",
-            "gpt-5",
-            "gpt-5-mini",
-            "claude-3.5-sonnet",
-            "claude-sonnet-4",
-            "o1",
-            "o1-mini"
-          ],
-          "enumDescriptions": [
-            "GPT-4o - Most capable model, best for complex understanding",
-            "GPT-4o-mini - Faster variant with slightly reduced capabilities",
-            "GPT-4.1 - Latest GPT-4 model with enhanced capabilities",
-            "GPT-5 - Next generation GPT model with larger context and improved capability",
-            "GPT-5 Mini - Next generation mini model with improved efficiency and capabilities",
-            "Claude 3.5 Sonnet - Anthropic's most capable model with advanced reasoning",
-            "Claude 4 Sonnet - Latest Anthropic model with enhanced capabilities",
-            "o1 - OpenAI o1 model, highest reasoning capabilities",
-            "o1-mini - Smaller, faster OpenAI o1 model"
-          ],
           "default": "gpt-5-mini",
-          "description": "The language model to use for generating commit messages"
+          "markdownDescription": "Preferred language model family for Copilot++. Use the command `Copilot++: Select Language Model` to pick from supported models. [Select model](command:copilot-plus-plus.selectLanguageModel) · [Reset to default](command:copilot-plus-plus.resetLanguageModel)"
         },
         "copilotPlusPlus.defaultTargetBranch": {
           "type": "string",
