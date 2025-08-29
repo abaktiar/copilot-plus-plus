@@ -2,6 +2,21 @@
 All notable changes to the "copilot-plus-plus" extension will be documented in this file.
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.1.6] - 2025-08-29 - Searchable, Keyboard-Friendly Dropdowns
+
+### Added
+- Searchable branch and model dropdowns in webviews with type-to-filter
+- Full keyboard navigation: Arrow Up/Down, Home/End, Enter, Escape
+- Accessibility improvements with proper ARIA roles, labels, and active-descendant
+
+### Changed
+- Improved highlight management and autofocus behavior when opening selectors
+- Consistent option rendering with selected/highlighted states across components
+
+### Fixed
+- Clear "No matches" state when filters return no results
+- Reliable outside-click and Escape handling to close menus
+
 ## [0.1.5] - 2025-08-29 - Dynamic Models & Settings UX
 
 ### Added
