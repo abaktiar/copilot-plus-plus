@@ -61,6 +61,69 @@ export class CopilotService {
   }
 
   /**
+   * Determine if an error indicates the selected model is not supported
+   */
+  private shouldFallbackToGpt41(error: unknown): boolean {
+    const msg = error instanceof Error ? (error as Error).message : String(error);
+    const code = (error as any)?.code ?? (error as any)?.error?.code;
+    const param = (error as any)?.param ?? (error as any)?.error?.param;
+    // Heuristics based on observed responses from Copilot/OpenAI bridges
+    const textHints = [
+      'model is not supported',
+      'requested model is not supported',
+      'model_not_supported',
+      'unsupported model',
+    ];
+    const matchesText = textHints.some((h) => msg?.toLowerCase().includes(h));
+    const matchesCode = typeof code === 'string' && code.toLowerCase().includes('model_not_supported');
+    const matchesParam = typeof param === 'string' && param.toLowerCase() === 'model';
+    return Boolean(matchesText || matchesCode || matchesParam);
+  }
+
+  /**
+   * Select a Copilot chat model by family or throw with a helpful error
+   */
+  private async selectModelByFamily(family: string): Promise<vscode.LanguageModelChat> {
+    const [model] = await vscode.lm.selectChatModels({ vendor: 'copilot', family });
+    if (!model) {
+      const errorMsg = `No suitable language model found for: ${family}. Please make sure GitHub Copilot is installed and enabled.`;
+      this.logError(errorMsg);
+      throw new Error(errorMsg);
+    }
+    return model;
+  }
+
+  /**
+   * Send a request with the given family and fallback to gpt-4.1 on model-not-supported errors
+   */
+  private async sendRequestWithFallback(
+    messages: vscode.LanguageModelChatMessage[],
+    primaryFamily: string,
+    token?: vscode.CancellationToken
+  ): Promise<vscode.LanguageModelChatResponse> {
+    try {
+      const primaryModel = await this.selectModelByFamily(primaryFamily);
+      return await primaryModel.sendRequest(messages, {}, token);
+    } catch (err) {
+      // If the primary family is not 4.1 and the error suggests unsupported model, retry with 4.1
+      if (primaryFamily !== 'gpt-4.1' && this.shouldFallbackToGpt41(err)) {
+        this.log(
+          `Model family '${primaryFamily}' not supported. Falling back to 'gpt-4.1' and retrying...`
+        );
+        try {
+          const fallbackModel = await this.selectModelByFamily('gpt-4.1');
+          return await fallbackModel.sendRequest(messages, {}, token);
+        } catch (fallbackErr) {
+          // Log both errors; throw the fallback error for visibility
+          this.logError(`Fallback to gpt-4.1 failed: ${fallbackErr}`);
+          throw fallbackErr;
+        }
+      }
+      throw err;
+    }
+  }
+
+  /**
    * Log message to the output channel
    */
   private log(message: string): void {
@@ -98,17 +161,7 @@ export class CopilotService {
           const modelFamily = ConfigService.getLanguageModelFamily();
           this.log(`Using language model family: ${modelFamily}`);
 
-          // Select the configured Copilot model
-          const [model] = await vscode.lm.selectChatModels({
-            vendor: 'copilot',
-            family: modelFamily,
-          });
-
-          if (!model) {
-            const errorMsg = `No suitable language model found for: ${modelFamily}. Please make sure GitHub Copilot is installed and enabled.`;
-            this.logError(errorMsg);
-            throw new Error(errorMsg);
-          }
+          // Prepare to send the request with fallback logic if needed
 
           progress.report({ increment: 20, message: 'Building prompt...' });
 
@@ -128,8 +181,8 @@ export class CopilotService {
           this.log('Prompt built, sending request to Copilot...');
           progress.report({ increment: 30, message: 'Asking Copilot...' });
 
-          // Send the request to the language model
-          const response = await model.sendRequest(messages, {}, token);
+          // Send the request to the language model with fallback to gpt-4.1 on model-not-supported
+          const response = await this.sendRequestWithFallback(messages, modelFamily, token);
 
           // Stream and collect the response
           let commitMessage = '';
@@ -186,17 +239,7 @@ export class CopilotService {
           const selectedModelFamily = modelFamily || ConfigService.getLanguageModelFamily();
           this.log(`Using language model family: ${selectedModelFamily}`);
 
-          // Select the configured Copilot model
-          const [model] = await vscode.lm.selectChatModels({
-            vendor: 'copilot',
-            family: selectedModelFamily,
-          });
-
-          if (!model) {
-            const errorMsg = `No suitable language model found for: ${selectedModelFamily}. Please make sure GitHub Copilot is installed and enabled.`;
-            this.logError(errorMsg);
-            throw new Error(errorMsg);
-          }
+          // Prepare to send the request with fallback
 
           progress.report({ increment: 20, message: 'Building prompt...' });
 
@@ -206,8 +249,8 @@ export class CopilotService {
           this.log('Prompt built, sending request to Copilot...');
           progress.report({ increment: 30, message: 'Asking Copilot...' });
 
-          // Send the request to the language model
-          const response = await model.sendRequest(messages, {}, token);
+          // Send the request to the language model with fallback to gpt-4.1 on model-not-supported
+          const response = await this.sendRequestWithFallback(messages, selectedModelFamily, token);
 
           // Stream and collect the response
           let responseContent = '';
@@ -417,16 +460,6 @@ export class CopilotService {
           const selectedModelFamily = modelFamily || ConfigService.getLanguageModelFamily();
           this.log(`Using language model family: ${selectedModelFamily}`);
 
-          const [model] = await vscode.lm.selectChatModels({
-            vendor: 'copilot',
-            family: selectedModelFamily,
-          });
-
-          if (!model) {
-            const errorMsg = `No suitable language model found for: ${selectedModelFamily}. Please make sure GitHub Copilot is installed and enabled.`;
-            this.logError(errorMsg);
-            throw new Error(errorMsg);
-          }
 
           progress.report({ increment: 20, message: 'Building prompt...' });
           messages = PromptService.buildPrReviewPrompt(prContext);
@@ -434,8 +467,8 @@ export class CopilotService {
           this.log('Prompt built, sending request to Copilot...');
           progress.report({ increment: 20, message: 'Analyzing code changes...' });
 
-          // Send the request to the language model
-          const response = await model.sendRequest(messages, {}, token);
+          // Send the request to the language model with fallback
+          const response = await this.sendRequestWithFallback(messages, selectedModelFamily, token);
 
           // Stream and collect the response
           responseContent = '';
@@ -586,20 +619,8 @@ export class CopilotService {
       const modelFamily = ConfigService.getLanguageModelFamily();
       this.log(`Using language model family: ${modelFamily}`);
 
-      // Select the configured Copilot model
-      const [model] = await vscode.lm.selectChatModels({
-        vendor: 'copilot',
-        family: modelFamily,
-      });
-
-      if (!model) {
-        const errorMsg = `No suitable language model found for: ${modelFamily}. Please make sure GitHub Copilot is installed and enabled.`;
-        this.logError(errorMsg);
-        throw new Error(errorMsg);
-      }
-
-      // Send the request to the language model
-      const response = await model.sendRequest(prompt);
+      // Send with fallback
+      const response = await this.sendRequestWithFallback(prompt, modelFamily);
 
       // Stream and collect the response
       let responseContent = '';
@@ -690,22 +711,10 @@ export class CopilotService {
       const modelName = modelFamily || ConfigService.getLanguageModelFamily();
       this.log(`Using language model family: ${modelName}`);
 
-      // Select the configured Copilot model
-      const [model] = await vscode.lm.selectChatModels({
-        vendor: 'copilot',
-        family: modelName,
-      });
-
-      if (!model) {
-        const errorMsg = `No suitable language model found for: ${modelName}. Please make sure GitHub Copilot is installed and enabled.`;
-        this.logError(errorMsg);
-        throw new Error(errorMsg);
-      }
-
       this.log('Prompt built, sending request to Copilot...');
 
-      // Send the request to the language model
-      const response = await model.sendRequest(messages, {});
+      // Send the request to the language model with fallback
+      const response = await this.sendRequestWithFallback(messages, modelName);
 
       // Stream and collect the response
       let responseContent = '';
