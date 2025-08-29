@@ -2,7 +2,7 @@
   "name": "copilot-plus-plus",
   "displayName": "Copilot++",
   "description": "AI-powered Git workflow automation for VS Code. Generate smart commit messages, comprehensive PR descriptions, conduct automated code reviews, and detect breaking changes using advanced language models.",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "publisher": "albaktiar",
   "engines": {
     "vscode": "^1.98.0"
@@ -74,12 +74,12 @@
       },
       {
         "command": "copilot-plus-plus.selectLanguageModel",
-        "title": "Copilot++: Select Language Model",
+        "title": "Select Language Model",
         "category": "Copilot++"
       },
       {
         "command": "copilot-plus-plus.resetLanguageModel",
-        "title": "Copilot++: Reset Language Model",
+        "title": "Reset Language Model",
         "category": "Copilot++"
       }
     ],

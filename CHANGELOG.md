@@ -2,7 +2,7 @@
 All notable changes to the "copilot-plus-plus" extension will be documented in this file.
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
-## [0.1.4] - 2025-08-29 - Dynamic Models & Settings UX
+## [0.1.5] - 2025-08-29 - Dynamic Models & Settings UX
 
 ### Added
 - Dynamic model discovery via VS Code Language Model API; only VS Code-supported models are shown in all panels
