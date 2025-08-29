@@ -314,7 +314,36 @@
   border-radius: 6px;
   box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
   z-index: 1000;
-  max-height: 200px;
+  max-height: 280px;
+  overflow: hidden;
+}
+
+.branch-search {
+  position: sticky;
+  top: 0;
+  background: var(--vscode-dropdown-background);
+  padding: 8px;
+  border-bottom: 1px solid var(--vscode-dropdown-border);
+}
+
+.branch-search-input {
+  width: 100%;
+  padding: 6px 8px;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.branch-search-input:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.branch-list {
+  max-height: 230px;
   overflow-y: auto;
 }
 
@@ -339,6 +368,12 @@
 .branch-option.selected {
   background: var(--vscode-list-activeSelectionBackground);
   color: var(--vscode-list-activeSelectionForeground);
+}
+
+.branch-empty {
+  padding: 10px 12px;
+  color: color-mix(in srgb, var(--vscode-foreground) 70%, transparent);
+  font-size: 12px;
 }
 
 /* Model Dropdown */
@@ -402,8 +437,8 @@
   border-radius: 6px;
   box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
   z-index: 1000;
-  max-height: 250px;
-  overflow-y: auto;
+  max-height: 300px;
+  overflow: hidden;
   min-width: 280px;
 }
 
@@ -430,6 +465,11 @@
   color: var(--vscode-list-activeSelectionForeground);
 }
 
+.model-option.highlighted {
+  background: color-mix(in srgb, var(--vscode-list-hoverBackground) 85%, transparent);
+  outline: 1px solid var(--vscode-focusBorder);
+}
+
 .model-option-content {
   display: flex;
   flex-direction: column;
@@ -445,6 +485,48 @@
   font-size: 11px;
   opacity: 0.8;
   color: color-mix(in srgb, var(--vscode-foreground) 75%, transparent);
+}
+
+/* Model search */
+.model-search {
+  position: sticky;
+  top: 0;
+  background: var(--vscode-dropdown-background);
+  padding: 8px;
+  border-bottom: 1px solid var(--vscode-dropdown-border);
+}
+
+.model-search-input {
+  width: 100%;
+  padding: 6px 8px;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.model-search-input:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.model-list {
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.model-empty {
+  padding: 10px 12px;
+  color: color-mix(in srgb, var(--vscode-foreground) 70%, transparent);
+  font-size: 12px;
+}
+
+/* Branch option highlight to improve keyboard visibility */
+.branch-option.highlighted {
+  background: color-mix(in srgb, var(--vscode-list-hoverBackground) 85%, transparent);
+  outline: 1px solid var(--vscode-focusBorder);
 }
 
 /* Icon */
