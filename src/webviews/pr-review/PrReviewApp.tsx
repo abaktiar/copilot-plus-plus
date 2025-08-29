@@ -67,7 +67,7 @@ export function PrReviewApp() {
   const [sourceBranch, setSourceBranch] = useState('');
   const [targetBranch, setTargetBranch] = useState('');
   const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
-  const models = AVAILABLE_MODELS;
+  const [models, setModels] = useState(AVAILABLE_MODELS);
 
   // Review state
   const [reviewResult, setReviewResult] = useState<ReviewResult | null>(null);
@@ -97,8 +97,11 @@ export function PrReviewApp() {
         setCurrentBranch(message.currentBranch || '');
         setSourceBranch(message.currentBranch || '');
         
-        if (message.languageModel) {
-          setSelectedModel(message.languageModel);
+        if (message.models && message.models.length > 0) {
+          setModels(message.models);
+        }
+        if (message.defaultModel || message.languageModel) {
+          setSelectedModel(message.defaultModel || message.languageModel!);
         }
 
         // Set target branch

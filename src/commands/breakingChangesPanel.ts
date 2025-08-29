@@ -3,6 +3,7 @@ import * as path from "path";
 import { GitService } from "../services/gitService";
 import { BreakingChangeService } from "../services/breakingChangeService";
 import { ConfigService } from "../services/configService";
+import { getAvailableCopilotModels, chooseDefaultModel } from "../services/modelService";
 import { LoggingService } from "../services/loggingService";
 
 export class BreakingChangesPanel {
@@ -67,16 +68,20 @@ export class BreakingChangesPanel {
           case "getBranches":
             const branches = await this._gitService.getAvailableBranches();
             const currentBranch = await this._gitService.getCurrentBranch();
-            const defaultTargetBranch =
-              this._gitService.getDefaultTargetBranch();
-            const languageModel = ConfigService.getLanguageModelFamily();
+            const defaultTargetBranch = this._gitService.getDefaultTargetBranch();
+            const configuredModel = ConfigService.getLanguageModelFamily();
+
+            const models = await getAvailableCopilotModels();
+            const defaultModel = chooseDefaultModel(models, configuredModel) || configuredModel;
 
             this._panel.webview.postMessage({
               command: "branchesList",
               branches,
               currentBranch,
               defaultTargetBranch,
-              languageModel,
+              languageModel: defaultModel,
+              models,
+              defaultModel,
             });
             break;
 
@@ -119,13 +124,6 @@ export class BreakingChangesPanel {
         `Analyzing breaking changes between ${sourceBranch} and ${targetBranch}`,
         "BreakingChangesPanel"
       );
-
-      // Update model if specified
-      if (modelFamily) {
-        await vscode.workspace
-          .getConfiguration("copilotPlusPlus")
-          .update("languageModel", modelFamily, true);
-      }
 
       // Show loading state
       this._panel.webview.postMessage({

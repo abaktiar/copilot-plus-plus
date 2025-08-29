@@ -70,8 +70,8 @@ export function BreakingChangesApp() {
   const [filterChangeType, setFilterChangeType] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Use models from shared configuration (no external loading needed)
-  const models = AVAILABLE_MODELS;
+  // Models: begin with bundled fallback, prefer dynamic list from extension
+  const [models, setModels] = useState(AVAILABLE_MODELS);
 
   // Handle messages from extension
   const handleMessage = useCallback((message: ExtensionMessage) => {
@@ -82,8 +82,11 @@ export function BreakingChangesApp() {
         setSourceBranch(message.currentBranch || '');
 
         // Set the selected model if provided from backend
-        if (message.languageModel) {
-          setSelectedModel(message.languageModel);
+        if (message.models && message.models.length > 0) {
+          setModels(message.models);
+        }
+        if (message.defaultModel || message.languageModel) {
+          setSelectedModel(message.defaultModel || message.languageModel!);
         }
 
         // Set target branch with the same logic as original implementation

@@ -25,6 +25,9 @@ export interface ExtensionMessage extends WebviewMessage {
   currentBranch?: string;
   defaultTargetBranch?: string;
   languageModel?: string;
+  // Dynamic model support
+  models?: ModelConfig[];
+  defaultModel?: string;
   result?: any;
   error?: string;
   message?: string;

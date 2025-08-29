@@ -2,6 +2,24 @@
 All notable changes to the "copilot-plus-plus" extension will be documented in this file.
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.1.4] - 2025-08-29 - Dynamic Models & Settings UX
+
+### Added
+- Dynamic model discovery via VS Code Language Model API; only VS Code-supported models are shown in all panels
+- New command: "Copilot++: Select Language Model" to choose from currently supported models dynamically
+- New command: "Copilot++: Reset Language Model" to revert the setting to the default
+- Optional usage badges (e.g., "write 1x") and metadata (vision/context) in model picker and dropdowns when exposed by the API
+
+### Changed
+- Webviews (PR Description, PR Review, Breaking Changes) now receive model lists/default from the extension and render them dynamically with fallback to bundled models when needed
+- Settings UX: removed hardcoded enum; added markdown action links in the setting description to select/reset the model
+- Model names are generated dynamically (using displayName/name from API, or humanized from ID) with no hardcoded mapping
+- Panel model changes are now ephemeral and no longer update the global default; only Settings or the Select command change the global value
+- Language model requests now gracefully fall back to `gpt-4.1` when the selected family is unsupported, with clearer error handling
+
+### Fixed
+- Avoid stale or unsupported models by sourcing from VS Code’s current model availability
+
 ## [0.1.3] - 2025-08-25 - PR Description UI Improvements
 
 ### Fixed
